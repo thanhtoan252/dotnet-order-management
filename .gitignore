@@ -1,0 +1,74 @@
+# ─── .NET build output ───────────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+artifacts/
+*.nupkg
+*.snupkg
+
+# ─── .NET user & IDE ─────────────────────────────────────────────────────────
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.DotSettings.user
+
+# ─── .NET test results ───────────────────────────────────────────────────────
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage*/
+
+# ─── Entity Framework ────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+ui/node_modules/
+ui/dist/
+ui/dist-ssr/
+ui/.vite/
+ui/*.tsbuildinfo
+ui/coverage/
+ui/.eslintcache
+ui/.stylelintcache
+
+# ─── Secrets & environment ───────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+appsettings.*.local.json
+appsettings.local.json
+secrets.json
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vs/
+.idea/
+.vscode/
+*.swp
+*.swo
+*.rsuser
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
