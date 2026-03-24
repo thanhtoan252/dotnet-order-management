@@ -1,0 +1,180 @@
+openapi: "3.1.0"
+
+info:
+  title: Order Management API — Queries
+  version: "1.0"
+  description: Read operations (get order, list orders, list by customer)
+
+servers:
+  - url: http://localhost:5072
+    description: Local development
+
+tags:
+  - name: Orders
+
+paths:
+  /api/orders:
+    get:
+      tags: [ Orders ]
+      operationId: GetAllOrders
+      summary: Get all orders (paginated)
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderResponse"
+
+  /api/orders/{id}:
+    get:
+      tags: [ Orders ]
+      operationId: GetOrder
+      summary: Get order by ID
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "404":
+          description: Order not found
+
+  /api/orders/customer/{customerId}:
+    get:
+      tags: [ Orders ]
+      operationId: GetCustomerOrders
+      summary: List orders for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Customer orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderResponse"
+
+components:
+  parameters:
+    OrderId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 100
+
+  schemas:
+    OrderStatus:
+      type: string
+      enum:
+        - Pending
+        - Confirmed
+        - Processing
+        - Shipped
+        - Delivered
+        - Cancelled
+
+    AddressDto:
+      type: object
+      required: [ street, city, province, zipCode ]
+      properties:
+        street:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        province:
+          type: string
+          maxLength: 100
+        zipCode:
+          type: string
+          maxLength: 20
+
+    OrderResponse:
+      type: object
+      required: [ id, orderNumber, status, totalAmount, currency, shippingAddress, createdAt, items ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        totalAmount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          maxLength: 3
+        shippingAddress:
+          $ref: "#/components/schemas/AddressDto"
+        createdAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemResponse"
+
+    OrderItemResponse:
+      type: object
+      required: [ productId, productName, unitPrice, currency, quantity, lineTotal ]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        unitPrice:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          maxLength: 3
+        quantity:
+          type: integer
+        lineTotal:
+          type: number
+          format: decimal
