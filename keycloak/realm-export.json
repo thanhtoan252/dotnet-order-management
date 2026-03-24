@@ -1,0 +1,176 @@
+{
+  "realm": "order-management",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "admin", "composite": false, "clientRole": false },
+      { "name": "user",  "composite": false, "clientRole": false }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "order-ui",
+      "name": "Order Management UI",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "order-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "order-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "order-api",
+      "name": "Order Management API",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "order-api-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "authorizationSettings": {
+        "allowRemoteResourceManagement": true,
+        "policyEnforcementMode": "ENFORCING",
+        "decisionStrategy": "UNANIMOUS",
+        "scopes": [
+          { "name": "order:confirm" },
+          { "name": "order:ship" },
+          { "name": "order:deliver" },
+          { "name": "order:delete" },
+          { "name": "order:clear" },
+          { "name": "product:create" },
+          { "name": "product:seed" },
+          { "name": "product:update" },
+          { "name": "product:delete" }
+        ],
+        "resources": [
+          {
+            "name": "Order Resource",
+            "type": "order",
+            "ownerManagedAccess": false,
+            "attributes": {},
+            "uris": [],
+            "scopes": [
+              { "name": "order:confirm" },
+              { "name": "order:ship" },
+              { "name": "order:deliver" },
+              { "name": "order:delete" },
+              { "name": "order:clear" }
+            ]
+          },
+          {
+            "name": "Product Resource",
+            "type": "product",
+            "ownerManagedAccess": false,
+            "attributes": {},
+            "uris": [],
+            "scopes": [
+              { "name": "product:create" },
+              { "name": "product:seed" },
+              { "name": "product:update" },
+              { "name": "product:delete" }
+            ]
+          }
+        ],
+        "policies": [
+          {
+            "name": "Admin Role Policy",
+            "type": "role",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "roles": "[{\"id\":\"admin\",\"required\":true}]"
+            }
+          },
+          {
+            "name": "Order Admin Permissions",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Order Resource\"]",
+              "scopes": "[\"order:confirm\",\"order:ship\",\"order:deliver\",\"order:delete\",\"order:clear\"]",
+              "applyPolicies": "[\"Admin Role Policy\"]"
+            }
+          },
+          {
+            "name": "Product Admin Permissions",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"Product Resource\"]",
+              "scopes": "[\"product:create\",\"product:seed\",\"product:update\",\"product:delete\"]",
+              "applyPolicies": "[\"Admin Role Policy\"]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@example.com",
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "admin123", "temporary": false }
+      ],
+      "realmRoles": ["admin", "user"]
+    },
+    {
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "user@example.com",
+      "firstName": "Regular",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "user123", "temporary": false }
+      ],
+      "realmRoles": ["user"]
+    }
+  ]
+}

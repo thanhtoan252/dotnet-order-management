@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OrderManagement.Domain\OrderManagement.Domain.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="NSwag.ApiDescription.Client">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <OpenApiReference Include="Contracts/orders-management.yaml"
+                          Namespace="OrderManagement.Application.Orders.Commands"
+                          OutputPath="Orders/Commands/OrderCommandsGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List</Options>
+        </OpenApiReference>
+
+        <OpenApiReference Include="Contracts/order-query.yaml"
+                          Namespace="OrderManagement.Application.Orders.Queries"
+                          OutputPath="Orders/Queries/OrderQueriesGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List</Options>
+        </OpenApiReference>
+
+        <OpenApiReference Include="Contracts/products-management.yaml"
+                          Namespace="OrderManagement.Application.Products.Commands"
+                          OutputPath="Products/Commands/ProductCommandsGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
+        </OpenApiReference>
+
+        <OpenApiReference Include="Contracts/product-query.yaml"
+                          Namespace="OrderManagement.Application.Products.Queries"
+                          OutputPath="Products/Queries/ProductQueriesGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
+        </OpenApiReference>
+
+    </ItemGroup>
+
+</Project>
+
+
