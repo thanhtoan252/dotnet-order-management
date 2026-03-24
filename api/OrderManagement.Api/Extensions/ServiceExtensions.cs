@@ -14,8 +14,9 @@ namespace OrderManagement.Api.Extensions;
 
 internal static class ServiceExtensions
 {
-    public static IHostBuilder AddSerilog(this IHostBuilder host) =>
-        host.UseSerilog((ctx, services, cfg) => cfg
+    public static IHostBuilder AddSerilog(this IHostBuilder host)
+    {
+        return host.UseSerilog((ctx, services, cfg) => cfg
             .ReadFrom.Configuration(ctx.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
@@ -29,6 +30,7 @@ internal static class ServiceExtensions
                 formatter: new JsonFormatter(),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7));
+    }
 
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services, IConfiguration configuration)
@@ -49,7 +51,7 @@ internal static class ServiceExtensions
     public static IServiceCollection AddKeycloakAuth(
         this IServiceCollection services, IConfigurationSection kc)
     {
-        var authority      = kc["Authority"] ?? "";
+        var authority = kc["Authority"] ?? "";
         var metadataAddress = kc["MetadataAddress"] ?? authority + "/.well-known/openid-configuration";
 
         services
@@ -78,13 +80,15 @@ internal static class ServiceExtensions
 
         services.AddAuthorization(options =>
         {
-            static void AddPermission(AuthorizationOptions o, string scope, string resource) =>
+            static void AddPermission(AuthorizationOptions o, string scope, string resource)
+            {
                 o.AddPolicy(scope, p => p.AddRequirements(new KeycloakPermissionRequirement(resource, scope)));
+            }
 
-            AddPermission(options, "order:confirm",  "Order Resource");
-            AddPermission(options, "order:ship",     "Order Resource");
-            AddPermission(options, "order:deliver",  "Order Resource");
-            AddPermission(options, "order:delete",   "Order Resource");
+            AddPermission(options, "order:confirm", "Order Resource");
+            AddPermission(options, "order:ship", "Order Resource");
+            AddPermission(options, "order:deliver", "Order Resource");
+            AddPermission(options, "order:delete", "Order Resource");
 
             AddPermission(options, "product:create", "Product Resource");
             AddPermission(options, "product:update", "Product Resource");
@@ -100,7 +104,7 @@ internal static class ServiceExtensions
     // (e.g. localhost:8180) which is unreachable from inside the API container.
     private static HttpMessageHandler BuildBackchannelHandler(string authority, string metadataAddress)
     {
-        var publicBase   = GetBaseUrl(authority);
+        var publicBase = GetBaseUrl(authority);
         var internalBase = GetBaseUrl(metadataAddress);
 
         if (string.IsNullOrEmpty(publicBase) || publicBase == internalBase)
@@ -121,10 +125,30 @@ internal static class ServiceExtensions
         return $"{uri.Scheme}://{uri.Host}:{uri.Port}";
     }
 
+    public static IServiceCollection AddCorsPolicy(
+        this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        services.AddCors(options =>
+        {
+            if (environment.IsDevelopment() || allowedOrigins.Length == 0)
+            {
+                options.AddPolicy("CorsPolicy", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            }
+            else
+            {
+                options.AddPolicy("CorsPolicy", p => p.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader());
+            }
+        });
+
+        return services;
+    }
+
     private sealed class RewriteUrlHandler(string from, string to) : HttpClientHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken)
         {
             if (request.RequestUri is not null)
             {
@@ -137,21 +161,5 @@ internal static class ServiceExtensions
 
             return base.SendAsync(request, cancellationToken);
         }
-    }
-
-    public static IServiceCollection AddCorsPolicy(
-        this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
-    {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-
-        services.AddCors(options =>
-        {
-            if (environment.IsDevelopment() || allowedOrigins.Length == 0)
-                options.AddPolicy("CorsPolicy", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-            else
-                options.AddPolicy("CorsPolicy", p => p.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader());
-        });
-
-        return services;
     }
 }

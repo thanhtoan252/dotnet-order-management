@@ -36,7 +36,10 @@ public class OrderItem : BaseEntity
 
     internal Result IncreaseQuantity(int additional, Money currentPrice)
     {
-        if (additional <= 0) return DomainErrors.Order.InvalidQuantity;
+        if (additional <= 0)
+        {
+            return DomainErrors.Order.InvalidQuantity;
+        }
         Quantity += additional;
         UnitPrice = currentPrice;
         UpdatedAt = DateTime.UtcNow;

@@ -19,8 +19,8 @@ public class OrderRepository(OrderDbContext db) : IOrderRepository
             .SingleOrDefaultAsync(o => o.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(
-        Guid customerId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize,
+        CancellationToken ct = default)
     {
         return await db.Orders
             .Include(o => o.Items)

@@ -17,37 +17,69 @@ public class KeycloakAuthorizationHandler(
     IHttpContextAccessor httpContextAccessor,
     IMemoryCache cache) : AuthorizationHandler<KeycloakPermissionRequirement>
 {
-    protected override async Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
         KeycloakPermissionRequirement requirement)
     {
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext is null) return;
-
-        // Extract Bearer token from the incoming request
-        var authHeader = httpContext.Request.Headers.Authorization.ToString();
-        if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return;
-        var userToken = authHeader["Bearer ".Length..].Trim();
-
-        // Cache key: stable per user × permission
-        var sub = context.User.FindFirstValue("sub")
-                  ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                  ?? userToken[^Math.Min(16, userToken.Length)..];
-        var cacheKey = $"kc:{sub}:{requirement.Resource}#{requirement.Scope}";
-
-        if (cache.TryGetValue(cacheKey, out bool granted))
+        if (httpContext is null)
         {
-            if (granted) context.Succeed(requirement);
             return;
         }
 
+        if (!TryGetBearerToken(httpContext, out var userToken))
+        {
+            return;
+        }
+
+        var cacheKey = BuildCacheKey(context.User, userToken, requirement);
+        if (cache.TryGetValue(cacheKey, out bool cached))
+        {
+            if (cached)
+            {
+                context.Succeed(requirement);
+            }
+            return;
+        }
+
+        var granted = await CheckPermissionAsync(userToken, requirement);
+        cache.Set(cacheKey, granted, TimeSpan.FromSeconds(30));
+
+        if (granted)
+        {
+            context.Succeed(requirement);
+        }
+    }
+
+    private static bool TryGetBearerToken(HttpContext httpContext, out string token)
+    {
+        var header = httpContext.Request.Headers.Authorization.ToString();
+        if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            token = string.Empty;
+            return false;
+        }
+
+        token = header["Bearer ".Length..].Trim();
+        return true;
+    }
+
+    private static string BuildCacheKey(ClaimsPrincipal user, string token, KeycloakPermissionRequirement requirement)
+    {
+        var sub = user.FindFirstValue("sub")
+                  ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                  ?? token[^Math.Min(16, token.Length)..];
+        return $"kc:{sub}:{requirement.Resource}#{requirement.Scope}";
+    }
+
+    private async Task<bool> CheckPermissionAsync(string userToken, KeycloakPermissionRequirement requirement)
+    {
         var kc = configuration.GetSection("Keycloak");
         var clientId = kc["ClientId"] ?? throw new InvalidOperationException("Keycloak:ClientId is required");
         var clientSecret = kc["ClientSecret"] ??
                            throw new InvalidOperationException("Keycloak:ClientSecret is required");
         var audience = kc["Audience"] ?? "order-api";
-        // TokenEndpoint allows an internal Docker hostname to be used for server-to-server
-        // calls while Authority still reflects the public hostname in the JWT issuer claim.
+        // TokenEndpoint allows an internal Docker hostname for server-to-server calls
+        // while Authority still reflects the public hostname in the JWT issuer claim.
         var tokenEndpoint = kc["TokenEndpoint"]
                             ?? (kc["Authority"] ??
                                 throw new InvalidOperationException("Keycloak:Authority is required"))
@@ -57,7 +89,6 @@ public class KeycloakAuthorizationHandler(
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
-        // UMA grant: ask Keycloak whether subject_token holds the requested permission.
         // response_mode=decision returns {"result":true} instead of a full RPT token.
         var body = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -69,10 +100,6 @@ public class KeycloakAuthorizationHandler(
         });
 
         var response = await client.PostAsync(tokenEndpoint, body);
-
-        granted = response.IsSuccessStatusCode;
-        cache.Set(cacheKey, granted, TimeSpan.FromSeconds(30));
-
-        if (granted) context.Succeed(requirement);
+        return response.IsSuccessStatusCode;
     }
 }

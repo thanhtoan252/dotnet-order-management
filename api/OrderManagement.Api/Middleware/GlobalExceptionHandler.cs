@@ -6,9 +6,7 @@ namespace OrderManagement.Api.Middleware;
 
 public class GlobalExceptionHandler(IWebHostEnvironment env) : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(
-        HttpContext httpContext,
-        Exception exception,
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
         CancellationToken cancellationToken)
     {
         var (statusCode, title, detail) = exception switch

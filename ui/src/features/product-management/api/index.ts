@@ -19,7 +19,3 @@ export const updateProductApi = async (id: string, req: UpdateProductRequest): P
 export const deleteProductApi = async (id: string): Promise<void> => {
   await apiClient.delete(`/products/${id}`);
 };
-
-export const seedProductApi = async (): Promise<void> => {
-  await apiClient.post('/products/seed');
-};

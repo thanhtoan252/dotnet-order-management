@@ -7,7 +7,10 @@ public interface IOrderRepository
 {
     Task<Order?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Order?> GetByIdWithItemsAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken ct = default);
+
+    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<Order>> GetAllAsync(int page, int pageSize, CancellationToken ct = default);
     Task<bool> ExistsAsync(Guid id, CancellationToken ct = default);
     void Add(Order order);

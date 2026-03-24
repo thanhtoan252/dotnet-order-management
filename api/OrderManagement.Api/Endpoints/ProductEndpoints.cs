@@ -3,7 +3,7 @@ using OrderManagement.Api.Extensions;
 using OrderManagement.Api.Mappers;
 using OrderManagement.Application.Products;
 using OrderManagement.Application.Products.Commands;
-using OrderManagement.Application.Products.Queries;
+using OrderManagement.Application.Services;
 using OrderManagement.Domain.Entities;
 using OrderManagement.Domain.ValueObjects;
 
@@ -39,16 +39,15 @@ public static class ProductEndpoints
         return app;
     }
 
-    private static async Task<IResult> GetProductsAsync(
-        ProductService svc, int page = 1, int pageSize = 100, CancellationToken ct = default)
+    private static async Task<IResult> GetProductsAsync(ProductService svc, int page = 1, int pageSize = 100,
+        CancellationToken ct = default)
     {
         var products = await svc.GetAllProductsAsync(page, pageSize, ct);
         return TypedResults.Ok(products.Select(p => p.ToResponse()).ToList());
     }
 
-    private static async Task<IResult> CreateProductAsync(
-        CreateProductRequest request, IValidator<CreateProductRequest> validator,
-        ProductService svc, CancellationToken ct)
+    private static async Task<IResult> CreateProductAsync(CreateProductRequest request,
+        IValidator<CreateProductRequest> validator, ProductService svc, CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
@@ -62,9 +61,8 @@ public static class ProductEndpoints
         return TypedResults.Created($"/api/products/{created.Id}", created.ToResponse());
     }
 
-    private static async Task<IResult> UpdateProductAsync(
-        Guid id, UpdateProductRequest request, IValidator<UpdateProductRequest> validator,
-        ProductService svc, CancellationToken ct)
+    private static async Task<IResult> UpdateProductAsync(Guid id, UpdateProductRequest request,
+        IValidator<UpdateProductRequest> validator, ProductService svc, CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid)

@@ -22,7 +22,10 @@ public class Product : AggregateRoot
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(sku);
         ArgumentNullException.ThrowIfNull(price);
-        if (stock < 0) throw new ArgumentOutOfRangeException(nameof(stock));
+        if (stock < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(stock));
+        }
 
         return new Product
         {
@@ -36,7 +39,10 @@ public class Product : AggregateRoot
 
     public Result Restock(int quantity)
     {
-        if (quantity <= 0) return DomainErrors.Product.InvalidQuantity;
+        if (quantity <= 0)
+        {
+            return DomainErrors.Product.InvalidQuantity;
+        }
         StockQuantity += quantity;
         UpdatedAt = DateTime.UtcNow;
         return Result.Success();
@@ -44,8 +50,14 @@ public class Product : AggregateRoot
 
     public Result DeductStock(int quantity)
     {
-        if (quantity <= 0) return DomainErrors.Product.InvalidQuantity;
-        if (StockQuantity < quantity) return DomainErrors.Product.InsufficientStock(Name, StockQuantity, quantity);
+        if (quantity <= 0)
+        {
+            return DomainErrors.Product.InvalidQuantity;
+        }
+        if (StockQuantity < quantity)
+        {
+            return DomainErrors.Product.InsufficientStock(Name, StockQuantity, quantity);
+        }
         StockQuantity -= quantity;
         UpdatedAt = DateTime.UtcNow;
         return Result.Success();
@@ -53,7 +65,10 @@ public class Product : AggregateRoot
 
     public Result RestoreStock(int quantity)
     {
-        if (quantity <= 0) return DomainErrors.Product.InvalidQuantity;
+        if (quantity <= 0)
+        {
+            return DomainErrors.Product.InvalidQuantity;
+        }
         StockQuantity += quantity;
         UpdatedAt = DateTime.UtcNow;
         return Result.Success();
@@ -69,7 +84,10 @@ public class Product : AggregateRoot
 
     public Result UpdateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return new Error("Product.InvalidName", "Product name cannot be empty.");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return new Error("Product.InvalidName", "Product name cannot be empty.");
+        }
         Name = name.Trim();
         UpdatedAt = DateTime.UtcNow;
         return Result.Success();

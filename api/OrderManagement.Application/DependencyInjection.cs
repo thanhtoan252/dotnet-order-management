@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using OrderManagement.Application.Orders;
-using OrderManagement.Application.Products;
+using OrderManagement.Application.Services;
 
 namespace OrderManagement.Application;
 
