@@ -23,6 +23,7 @@ public class ProductService(
         productRepo.Add(product);
         await uow.SaveChangesAsync(ct);
         logger.LogInformation("Product {Sku} created with Id {Id}.", product.SKU, product.Id);
+
         return product;
     }
 
@@ -74,6 +75,7 @@ public class ProductService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} updated.", id);
+
         return product;
     }
 
@@ -90,6 +92,7 @@ public class ProductService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} deleted.", id);
+
         return Result.Success();
     }
 }

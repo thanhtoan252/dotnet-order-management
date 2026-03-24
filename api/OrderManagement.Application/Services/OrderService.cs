@@ -47,6 +47,7 @@ public class OrderService(
                 {
                     return addResult.Error;
                 }
+
                 productRepo.Update(product);
             }
 
@@ -79,6 +80,7 @@ public class OrderService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} confirmed by {User}.", order.OrderNumber, confirmedBy);
+
         return order;
     }
 
@@ -100,6 +102,7 @@ public class OrderService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} shipped by {User}.", order.OrderNumber, shippedBy);
+
         return order;
     }
 
@@ -127,6 +130,7 @@ public class OrderService(
                     {
                         return restoreResult.Error;
                     }
+
                     productRepo.Update(product);
                 }
             }
@@ -165,6 +169,7 @@ public class OrderService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} marked as delivered by {User}.", order.OrderNumber, deliveredBy);
+
         return order;
     }
 
@@ -175,6 +180,7 @@ public class OrderService(
         {
             return DomainErrors.Order.NotFound(orderId);
         }
+
         return order;
     }
 
@@ -210,6 +216,7 @@ public class OrderService(
 
             logger.LogInformation("Order {OrderId} deleted, stock restored for {ItemCount} item(s).", orderId,
                 order.Items.Count);
+
             return Result.Success();
         }
 
@@ -218,6 +225,7 @@ public class OrderService(
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderId} deleted.", orderId);
+
         return Result.Success();
     }
 

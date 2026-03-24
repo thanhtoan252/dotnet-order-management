@@ -43,8 +43,10 @@ public class Product : AggregateRoot
         {
             return DomainErrors.Product.InvalidQuantity;
         }
+
         StockQuantity += quantity;
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 
@@ -54,12 +56,15 @@ public class Product : AggregateRoot
         {
             return DomainErrors.Product.InvalidQuantity;
         }
+
         if (StockQuantity < quantity)
         {
             return DomainErrors.Product.InsufficientStock(Name, StockQuantity, quantity);
         }
+
         StockQuantity -= quantity;
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 
@@ -69,8 +74,10 @@ public class Product : AggregateRoot
         {
             return DomainErrors.Product.InvalidQuantity;
         }
+
         StockQuantity += quantity;
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 
@@ -79,6 +86,7 @@ public class Product : AggregateRoot
         ArgumentNullException.ThrowIfNull(newPrice);
         Price = newPrice;
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 
@@ -88,8 +96,10 @@ public class Product : AggregateRoot
         {
             return new Error("Product.InvalidName", "Product name cannot be empty.");
         }
+
         Name = name.Trim();
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 }

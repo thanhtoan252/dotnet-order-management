@@ -38,6 +38,7 @@ public class KeycloakAuthorizationHandler(
             {
                 context.Succeed(requirement);
             }
+
             return;
         }
 
@@ -56,10 +57,12 @@ public class KeycloakAuthorizationHandler(
         if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
             token = string.Empty;
+
             return false;
         }
 
         token = header["Bearer ".Length..].Trim();
+
         return true;
     }
 
@@ -68,6 +71,7 @@ public class KeycloakAuthorizationHandler(
         var sub = user.FindFirstValue("sub")
                   ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
                   ?? token[^Math.Min(16, token.Length)..];
+
         return $"kc:{sub}:{requirement.Resource}#{requirement.Scope}";
     }
 
@@ -100,6 +104,7 @@ public class KeycloakAuthorizationHandler(
         });
 
         var response = await client.PostAsync(tokenEndpoint, body);
+
         return response.IsSuccessStatusCode;
     }
 }

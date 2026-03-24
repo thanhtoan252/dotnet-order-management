@@ -40,9 +40,11 @@ public class OrderItem : BaseEntity
         {
             return DomainErrors.Order.InvalidQuantity;
         }
+
         Quantity += additional;
         UnitPrice = currentPrice;
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 

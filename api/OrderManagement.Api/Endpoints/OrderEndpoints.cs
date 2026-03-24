@@ -86,6 +86,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Created($"/api/orders/{result.Value.Id}", result.Value.ToResponse());
     }
 
@@ -96,6 +97,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -103,6 +105,7 @@ public static class OrderEndpoints
         CancellationToken ct = default)
     {
         var orders = await svc.GetAllOrdersAsync(page, pageSize, ct);
+
         return TypedResults.Ok(orders.Select(o => o.ToResponse()).ToList());
     }
 
@@ -110,6 +113,7 @@ public static class OrderEndpoints
         int pageSize = 20, CancellationToken ct = default)
     {
         var orders = await svc.GetCustomerOrdersAsync(customerId, page, pageSize, ct);
+
         return TypedResults.Ok(orders.Select(o => o.ToResponse()).ToList());
     }
 
@@ -121,6 +125,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -132,6 +137,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -143,6 +149,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -154,6 +161,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -164,6 +172,7 @@ public static class OrderEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.NoContent();
     }
 

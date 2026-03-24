@@ -43,6 +43,7 @@ public static class ProductEndpoints
         CancellationToken ct = default)
     {
         var products = await svc.GetAllProductsAsync(page, pageSize, ct);
+
         return TypedResults.Ok(products.Select(p => p.ToResponse()).ToList());
     }
 
@@ -58,6 +59,7 @@ public static class ProductEndpoints
         var price = Money.Create(request.Price, request.Currency);
         var product = Product.Create(request.Name, request.Sku, price, request.StockQuantity, request.Description);
         var created = await svc.CreateProductAsync(product, ct);
+
         return TypedResults.Created($"/api/products/{created.Id}", created.ToResponse());
     }
 
@@ -79,6 +81,7 @@ public static class ProductEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.Ok(result.Value.ToResponse());
     }
 
@@ -89,6 +92,7 @@ public static class ProductEndpoints
         {
             return result.Error.ToProblem();
         }
+
         return TypedResults.NoContent();
     }
 }

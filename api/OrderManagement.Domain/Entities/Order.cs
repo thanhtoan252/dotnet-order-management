@@ -42,6 +42,7 @@ public class Order : AggregateRoot
         };
 
         order.AddDomainEvent(new OrderPlacedDomainEvent(order.Id, order.OrderNumber, customerId));
+
         return order;
     }
 
@@ -84,6 +85,7 @@ public class Order : AggregateRoot
 
         RecalculateTotal();
         UpdatedAt = DateTime.UtcNow;
+
         return Result.Success();
     }
 
@@ -105,6 +107,7 @@ public class Order : AggregateRoot
         UpdatedBy = confirmedBy;
 
         AddDomainEvent(new OrderConfirmedDomainEvent(Id, OrderNumber));
+
         return Result.Success();
     }
 
@@ -121,6 +124,7 @@ public class Order : AggregateRoot
         UpdatedBy = shippedBy;
 
         AddDomainEvent(new OrderShippedDomainEvent(Id, OrderNumber));
+
         return Result.Success();
     }
 
@@ -136,6 +140,7 @@ public class Order : AggregateRoot
         UpdatedAt = DateTime.UtcNow;
 
         AddDomainEvent(new OrderDeliveredDomainEvent(Id, OrderNumber));
+
         return Result.Success();
     }
 
@@ -153,6 +158,7 @@ public class Order : AggregateRoot
         UpdatedBy = cancelledBy;
 
         AddDomainEvent(new OrderCancelledDomainEvent(Id, OrderNumber, reason));
+
         return Result.Success();
     }
 
@@ -162,6 +168,7 @@ public class Order : AggregateRoot
         if (activeItems.Count == 0)
         {
             TotalAmount = Money.Zero(TotalAmount.Currency);
+
             return;
         }
 

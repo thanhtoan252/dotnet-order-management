@@ -16,13 +16,16 @@ public sealed record Money(decimal Amount, string Currency = "USD")
         {
             throw new ArgumentOutOfRangeException(nameof(amount), "Amount cannot be negative.");
         }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(currency);
+
         return new Money(amount, currency.ToUpperInvariant());
     }
 
     public static Money operator +(Money a, Money b)
     {
         EnsureSameCurrency(a, b);
+
         return new Money(a.Amount + b.Amount, a.Currency);
     }
 
@@ -33,6 +36,7 @@ public sealed record Money(decimal Amount, string Currency = "USD")
         {
             throw new InvalidOperationException("Result cannot be negative.");
         }
+
         return new Money(a.Amount - b.Amount, a.Currency);
     }
 
