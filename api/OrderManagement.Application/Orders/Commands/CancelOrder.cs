@@ -9,11 +9,7 @@ namespace OrderManagement.Application.Orders.Commands;
 public record CancelOrderCommand(Guid OrderId, string Reason, string CancelledBy)
     : ICommand<Result<OrderResponse>>;
 
-public class CancelOrderHandler(
-    IOrderRepository orderRepo,
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<CancelOrderHandler> logger)
+public class CancelOrderHandler(IOrderRepository orderRepo, IProductRepository productRepo, IUnitOfWork uow, ILogger<CancelOrderHandler> logger)
     : ICommandHandler<CancelOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(CancelOrderCommand command, CancellationToken ct)

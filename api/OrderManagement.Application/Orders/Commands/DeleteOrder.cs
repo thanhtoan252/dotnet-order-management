@@ -9,11 +9,7 @@ namespace OrderManagement.Application.Orders.Commands;
 public record DeleteOrderCommand(Guid OrderId)
     : ICommand<Result>;
 
-public class DeleteOrderHandler(
-    IOrderRepository orderRepo,
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<DeleteOrderHandler> logger)
+public class DeleteOrderHandler(IOrderRepository orderRepo, IProductRepository productRepo, IUnitOfWork uow, ILogger<DeleteOrderHandler> logger)
     : ICommandHandler<DeleteOrderCommand, Result>
 {
     public async Task<Result> HandleAsync(DeleteOrderCommand command, CancellationToken ct)

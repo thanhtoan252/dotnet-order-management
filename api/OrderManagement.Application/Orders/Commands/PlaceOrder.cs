@@ -11,11 +11,7 @@ namespace OrderManagement.Application.Orders.Commands;
 public record PlaceOrderCommand(PlaceOrderRequest Request, string PlacedBy)
     : ICommand<Result<OrderResponse>>;
 
-public class PlaceOrderHandler(
-    IOrderRepository orderRepo,
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<PlaceOrderHandler> logger)
+public class PlaceOrderHandler(IOrderRepository orderRepo, IProductRepository productRepo, IUnitOfWork uow, ILogger<PlaceOrderHandler> logger)
     : ICommandHandler<PlaceOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(PlaceOrderCommand command, CancellationToken ct)

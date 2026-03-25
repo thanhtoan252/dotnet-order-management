@@ -37,7 +37,7 @@ public class OrderDbContext(DbContextOptions<OrderDbContext> options, TimeProvid
 
         var result = await base.SaveChangesAsync(cancellationToken);
 
-        // TODO: replace with real event bus (e.g. IEventBus, MediatR IPublisher) in production
+        // Dispatch domain events (fire-and-forget log; replace with event bus in production)
         foreach (var aggregate in aggregates)
         {
             foreach (var domainEvent in aggregate.DomainEvents)
