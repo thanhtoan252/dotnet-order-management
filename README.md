@@ -1,6 +1,12 @@
 # Order Management System
 
-A full-stack order management application built with .NET 10 and React 19, demonstrating Domain-Driven Design (DDD), Clean Architecture, CQRS, API-first design, Keycloak authentication, and high-concurrency handling.
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?logo=keycloak)
+
+A full-stack order management application built with .NET 10 and React 19, demonstrating Domain-Driven Design (DDD), Clean Architecture, Keycloak authentication, and high-concurrency handling.
 
 ---
 
