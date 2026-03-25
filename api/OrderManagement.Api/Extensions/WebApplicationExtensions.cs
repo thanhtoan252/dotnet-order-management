@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using OrderManagement.Api.Endpoints;
+using OrderManagement.Infrastructure.Data;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -6,8 +8,15 @@ namespace OrderManagement.Api.Extensions;
 
 internal static class WebApplicationExtensions
 {
-    public static WebApplication ConfigurePipeline(this WebApplication app)
+    public static async Task<WebApplication> ConfigurePipelineAsync(this WebApplication app)
     {
+        if (app.Environment.IsDevelopment())
+        {
+            await using var scope = app.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
+            await db.Database.MigrateAsync();
+        }
+
         app.UseExceptionHandler();
 
         if (app.Environment.IsDevelopment())

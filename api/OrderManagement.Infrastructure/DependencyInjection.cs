@@ -11,9 +11,7 @@ namespace OrderManagement.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<OrderDbContext>(options =>
             options.UseSqlServer(
@@ -25,6 +23,7 @@ public static class DependencyInjection
                     sql.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
                 }));
 
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

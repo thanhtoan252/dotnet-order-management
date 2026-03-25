@@ -1,11 +1,9 @@
 using System.Security.Claims;
 using FluentValidation;
 using OrderManagement.Api.Extensions;
-using OrderManagement.Api.Mappers;
-using OrderManagement.Application.Orders;
+using OrderManagement.Application.Common.Dispatching;
 using OrderManagement.Application.Orders.Commands;
-using OrderManagement.Application.Services;
-using OrderManagement.Domain.ValueObjects;
+using OrderManagement.Application.Orders.Queries;
 
 namespace OrderManagement.Api.Endpoints;
 
@@ -17,11 +15,11 @@ public static class OrderEndpoints
             .WithTags("Orders")
             .RequireAuthorization();
 
-        group.MapPost("", PlaceOrderAsync)
+        group.MapPost("/", PlaceOrderAsync)
             .WithName("PlaceOrder")
             .WithSummary("Place a new order");
 
-        group.MapGet("", GetAllOrdersAsync)
+        group.MapGet("/", GetAllOrdersAsync)
             .WithName("GetAllOrders")
             .WithSummary("Get all orders");
 
@@ -61,7 +59,8 @@ public static class OrderEndpoints
     }
 
     private static async Task<IResult> PlaceOrderAsync(PlaceOrderRequest request,
-        IValidator<PlaceOrderRequest> validator, OrderService svc, HttpContext httpContext, CancellationToken ct)
+        IValidator<PlaceOrderRequest> validator, IDispatcher dispatcher,
+        HttpContext httpContext, CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
@@ -69,105 +68,101 @@ public static class OrderEndpoints
             return Results.ValidationProblem(validation.ToDictionary());
         }
 
-        var address = Address.Create(
-            request.ShippingAddress.Street,
-            request.ShippingAddress.City,
-            request.ShippingAddress.Province,
-            request.ShippingAddress.ZipCode);
-
-        var lines = request.Lines
-            .Select(l => (l.ProductId, l.Quantity))
-            .ToList();
-
-        var result = await svc.PlaceOrderAsync(
-            request.CustomerId, address, lines, request.Notes, GetUsername(httpContext.User), ct);
+        var result = await dispatcher.SendAsync(
+            new PlaceOrderCommand(request, GetUsername(httpContext.User)), ct);
 
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
         }
 
-        return TypedResults.Created($"/api/orders/{result.Value.Id}", result.Value.ToResponse());
+        return TypedResults.Created($"/api/orders/{result.Value.Id}", result.Value);
     }
 
-    private static async Task<IResult> GetOrderAsync(Guid id, OrderService svc, CancellationToken ct)
+    private static async Task<IResult> GetOrderAsync(Guid id, IDispatcher dispatcher, CancellationToken ct)
     {
-        var result = await svc.GetOrderAsync(id, ct);
+        var result = await dispatcher.QueryAsync(new GetOrderByIdQuery(id), ct);
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
         }
 
-        return TypedResults.Ok(result.Value.ToResponse());
+        return TypedResults.Ok(result.Value);
     }
 
-    private static async Task<IResult> GetAllOrdersAsync(OrderService svc, int page = 1, int pageSize = 100,
+    private static async Task<IResult> GetAllOrdersAsync(IDispatcher dispatcher, int page = 1, int pageSize = 100,
         CancellationToken ct = default)
     {
-        var orders = await svc.GetAllOrdersAsync(page, pageSize, ct);
-
-        return TypedResults.Ok(orders.Select(o => o.ToResponse()).ToList());
+        var orders = await dispatcher.QueryAsync(new GetAllOrdersQuery(page, pageSize), ct);
+        return TypedResults.Ok(orders);
     }
 
-    private static async Task<IResult> GetCustomerOrdersAsync(Guid customerId, OrderService svc, int page = 1,
+    private static async Task<IResult> GetCustomerOrdersAsync(Guid customerId, IDispatcher dispatcher, int page = 1,
         int pageSize = 20, CancellationToken ct = default)
     {
-        var orders = await svc.GetCustomerOrdersAsync(customerId, page, pageSize, ct);
-
-        return TypedResults.Ok(orders.Select(o => o.ToResponse()).ToList());
+        var orders = await dispatcher.QueryAsync(new GetCustomerOrdersQuery(customerId, page, pageSize), ct);
+        return TypedResults.Ok(orders);
     }
 
-    private static async Task<IResult> ConfirmOrderAsync(Guid id, OrderService svc, HttpContext httpContext,
-        CancellationToken ct)
-    {
-        var result = await svc.ConfirmOrderAsync(id, GetUsername(httpContext.User), ct);
-        if (result.IsFailure)
-        {
-            return result.Error.ToProblem();
-        }
-
-        return TypedResults.Ok(result.Value.ToResponse());
-    }
-
-    private static async Task<IResult> ShipOrderAsync(Guid id, OrderService svc, HttpContext httpContext,
-        CancellationToken ct)
-    {
-        var result = await svc.ShipOrderAsync(id, GetUsername(httpContext.User), ct);
-        if (result.IsFailure)
-        {
-            return result.Error.ToProblem();
-        }
-
-        return TypedResults.Ok(result.Value.ToResponse());
-    }
-
-    private static async Task<IResult> CancelOrderAsync(Guid id, CancelOrderRequest request, OrderService svc,
+    private static async Task<IResult> ConfirmOrderAsync(Guid id, IDispatcher dispatcher,
         HttpContext httpContext, CancellationToken ct)
     {
-        var result = await svc.CancelOrderAsync(id, request.Reason, GetUsername(httpContext.User), ct);
+        var result = await dispatcher.SendAsync(
+            new ConfirmOrderCommand(id, GetUsername(httpContext.User)), ct);
+
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
         }
 
-        return TypedResults.Ok(result.Value.ToResponse());
+        return TypedResults.Ok(result.Value);
     }
 
-    private static async Task<IResult> DeliverOrderAsync(Guid id, OrderService svc, HttpContext httpContext,
-        CancellationToken ct)
+    private static async Task<IResult> ShipOrderAsync(Guid id, IDispatcher dispatcher,
+        HttpContext httpContext, CancellationToken ct)
     {
-        var result = await svc.DeliverOrderAsync(id, GetUsername(httpContext.User), ct);
+        var result = await dispatcher.SendAsync(
+            new ShipOrderCommand(id, GetUsername(httpContext.User)), ct);
+
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
         }
 
-        return TypedResults.Ok(result.Value.ToResponse());
+        return TypedResults.Ok(result.Value);
     }
 
-    private static async Task<IResult> DeleteOrderAsync(Guid id, OrderService svc, CancellationToken ct)
+    private static async Task<IResult> CancelOrderAsync(Guid id, CancelOrderRequest request, IDispatcher dispatcher,
+        HttpContext httpContext, CancellationToken ct)
     {
-        var result = await svc.DeleteOrderAsync(id, ct);
+        var result = await dispatcher.SendAsync(
+            new CancelOrderCommand(id, request.Reason, GetUsername(httpContext.User)), ct);
+
+        if (result.IsFailure)
+        {
+            return result.Error.ToProblem();
+        }
+
+        return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> DeliverOrderAsync(Guid id, IDispatcher dispatcher,
+        HttpContext httpContext, CancellationToken ct)
+    {
+        var result = await dispatcher.SendAsync(
+            new DeliverOrderCommand(id, GetUsername(httpContext.User)), ct);
+
+        if (result.IsFailure)
+        {
+            return result.Error.ToProblem();
+        }
+
+        return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> DeleteOrderAsync(Guid id, IDispatcher dispatcher, CancellationToken ct)
+    {
+        var result = await dispatcher.SendAsync(new DeleteOrderCommand(id), ct);
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
