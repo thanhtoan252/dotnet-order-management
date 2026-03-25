@@ -10,10 +10,7 @@ namespace OrderManagement.Application.Products.Commands;
 public record UpdateProductCommand(Guid ProductId, UpdateProductRequest Request)
     : ICommand<Result<ProductResponse>>;
 
-public class UpdateProductHandler(
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<UpdateProductHandler> logger)
+public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uow, ILogger<UpdateProductHandler> logger)
     : ICommandHandler<UpdateProductCommand, Result<ProductResponse>>
 {
     public async Task<Result<ProductResponse>> HandleAsync(UpdateProductCommand command, CancellationToken ct)

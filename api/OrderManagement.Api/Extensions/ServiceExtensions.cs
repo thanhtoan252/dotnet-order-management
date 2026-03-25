@@ -48,8 +48,7 @@ internal static class ServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddKeycloakAuth(
-        this IServiceCollection services, IConfigurationSection kc)
+    public static IServiceCollection AddKeycloakAuth(this IServiceCollection services, IConfigurationSection kc)
     {
         var authority = kc["Authority"] ?? "";
         var metadataAddress = kc["MetadataAddress"] ?? authority + "/.well-known/openid-configuration";

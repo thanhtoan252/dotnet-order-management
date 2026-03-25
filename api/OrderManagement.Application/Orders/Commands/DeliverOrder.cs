@@ -9,10 +9,7 @@ namespace OrderManagement.Application.Orders.Commands;
 public record DeliverOrderCommand(Guid OrderId, string DeliveredBy)
     : ICommand<Result<OrderResponse>>;
 
-public class DeliverOrderHandler(
-    IOrderRepository orderRepo,
-    IUnitOfWork uow,
-    ILogger<DeliverOrderHandler> logger)
+public class DeliverOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, ILogger<DeliverOrderHandler> logger)
     : ICommandHandler<DeliverOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(DeliverOrderCommand command, CancellationToken ct)

@@ -9,10 +9,7 @@ namespace OrderManagement.Application.Orders.Commands;
 public record ConfirmOrderCommand(Guid OrderId, string ConfirmedBy)
     : ICommand<Result<OrderResponse>>;
 
-public class ConfirmOrderHandler(
-    IOrderRepository orderRepo,
-    IUnitOfWork uow,
-    ILogger<ConfirmOrderHandler> logger)
+public class ConfirmOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, ILogger<ConfirmOrderHandler> logger)
     : ICommandHandler<ConfirmOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(ConfirmOrderCommand command, CancellationToken ct)

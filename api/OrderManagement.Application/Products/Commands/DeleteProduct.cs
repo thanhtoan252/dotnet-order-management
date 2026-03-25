@@ -8,10 +8,7 @@ namespace OrderManagement.Application.Products.Commands;
 public record DeleteProductCommand(Guid ProductId)
     : ICommand<Result>;
 
-public class DeleteProductHandler(
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<DeleteProductHandler> logger)
+public class DeleteProductHandler(IProductRepository productRepo, IUnitOfWork uow, ILogger<DeleteProductHandler> logger)
     : ICommandHandler<DeleteProductCommand, Result>
 {
     public async Task<Result> HandleAsync(DeleteProductCommand command, CancellationToken ct)

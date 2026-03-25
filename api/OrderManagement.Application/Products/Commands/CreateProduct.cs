@@ -11,10 +11,7 @@ namespace OrderManagement.Application.Products.Commands;
 public record CreateProductCommand(CreateProductRequest Request)
     : ICommand<Result<ProductResponse>>;
 
-public class CreateProductHandler(
-    IProductRepository productRepo,
-    IUnitOfWork uow,
-    ILogger<CreateProductHandler> logger)
+public class CreateProductHandler(IProductRepository productRepo, IUnitOfWork uow, ILogger<CreateProductHandler> logger)
     : ICommandHandler<CreateProductCommand, Result<ProductResponse>>
 {
     public async Task<Result<ProductResponse>> HandleAsync(CreateProductCommand command, CancellationToken ct)

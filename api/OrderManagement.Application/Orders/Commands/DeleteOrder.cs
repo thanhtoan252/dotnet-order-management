@@ -41,23 +41,25 @@ public class DeleteOrderHandler(
                     }
                 }
 
-                order.IsDeleted = true;
-                orderRepo.Update(order);
-                await uow.SaveChangesAsync(ct);
+                await SoftDeleteAsync();
             }, ct);
 
             logger.LogInformation("Order {OrderId} deleted, stock restored for {ItemCount} item(s).",
                 command.OrderId, order.Items.Count);
-
-            return Result.Success();
+        }
+        else
+        {
+            await SoftDeleteAsync();
+            logger.LogInformation("Order {OrderId} deleted.", command.OrderId);
         }
 
-        order.IsDeleted = true;
-        orderRepo.Update(order);
-        await uow.SaveChangesAsync(ct);
-
-        logger.LogInformation("Order {OrderId} deleted.", command.OrderId);
-
         return Result.Success();
+
+        async Task SoftDeleteAsync()
+        {
+            order.IsDeleted = true;
+            orderRepo.Update(order);
+            await uow.SaveChangesAsync(ct);
+        }
     }
 }
