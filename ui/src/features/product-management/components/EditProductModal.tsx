@@ -40,9 +40,7 @@ export const EditProductModal = ({ product, loading, onClose, onSubmit }: Props)
       return;
     }
     const err = await onSubmit(form);
-    if (err) {
-      setError(err);
-    } else {
+    if (!err) {
       onClose();
     }
   };

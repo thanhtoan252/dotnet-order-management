@@ -1,5 +1,11 @@
 # Order Management System
 
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?logo=keycloak)
+
 A full-stack order management application built with .NET 10 and React 19, demonstrating Domain-Driven Design (DDD), Clean Architecture, Keycloak authentication, and high-concurrency handling.
 
 ---
@@ -146,11 +152,74 @@ JWT Bearer tokens validated against Keycloak. Fine-grained permissions use Keycl
 - [Node.js 20+](https://nodejs.org/)
 - [Docker + Docker Compose](https://docs.docker.com/get-docker/)
 
+### Environment Setup
+
+The project uses two `.env` files — one for Docker Compose services and one for the UI dev server.
+
+#### 1. `docker-compose/.env`
+
+Create `docker-compose/.env` with the following values:
+
+```env
+# ─── SQL Server ───────────────────────────────────────────────────────────────
+SA_PASSWORD=YourStr0ng!Pass
+
+# ─── Connection Strings ───────────────────────────────────────────────────────
+ConnectionStrings__DefaultConnection=Server=db,1433;Database=OrderManagement;User Id=sa;Password=YourStr0ng!Pass;TrustServerCertificate=True
+
+# ─── Keycloak ─────────────────────────────────────────────────────────────────
+KC_DB_PASSWORD=keycloak
+KC_ADMIN=admin
+KC_ADMIN_PASSWORD=admin
+KC_HOSTNAME=localhost
+KC_HTTP_PORT=8180
+
+# ─── Keycloak App Settings ────────────────────────────────────────────────────
+Keycloak__Authority=http://localhost:8180/realms/order-management
+Keycloak__MetadataAddress=http://keycloak:8180/realms/order-management/.well-known/openid-configuration
+Keycloak__TokenEndpoint=http://keycloak:8180/realms/order-management/protocol/openid-connect/token
+Keycloak__Audience=order-api
+Keycloak__ClientId=order-api
+Keycloak__ClientSecret=order-api-secret
+
+ASPNETCORE_ENVIRONMENT=Development
+```
+
+| Variable | Description |
+|---|---|
+| `SA_PASSWORD` | SQL Server SA password — must match the password in `ConnectionStrings__DefaultConnection` |
+| `ConnectionStrings__DefaultConnection` | Connection string to the SQL Server container |
+| `KC_DB_PASSWORD` | PostgreSQL password for the Keycloak database |
+| `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Keycloak admin credentials |
+| `KC_HOSTNAME` | Public hostname of Keycloak (used for redirect URIs) |
+| `KC_HTTP_PORT` | Keycloak HTTP port |
+| `Keycloak__Authority` | Issuer URL for JWT validation (resolved from the browser/client side) |
+| `Keycloak__MetadataAddress` | OpenID Connect discovery endpoint (resolved from inside the API container using the internal hostname `keycloak`) |
+| `Keycloak__TokenEndpoint` | Token endpoint (resolved from inside the API container using the internal hostname `keycloak`) |
+| `Keycloak__Audience` | Expected `aud` claim in the JWT |
+| `Keycloak__ClientId` | Client ID used for UMA permission checks |
+| `Keycloak__ClientSecret` | Client secret used for UMA permission checks |
+| `ASPNETCORE_ENVIRONMENT` | ASP.NET Core environment (`Development` / `Production`) |
+
+#### 2. `ui/.env.local`
+
+Create `ui/.env.local` for the UI dev server:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+| Variable | Description |
+|---|---|
+| `VITE_API_BASE_URL` | API base URL used by the Axios client in the UI |
+
+---
+
 ### Run with Docker Compose (full stack)
 
 ```bash
-# Copy and edit environment variables
-cp .env.example .env
+# Create the .env file first (see Environment Setup above)
+cd docker-compose
 
 # Start all services (Keycloak, SQL Server, API, UI)
 docker compose up --build
