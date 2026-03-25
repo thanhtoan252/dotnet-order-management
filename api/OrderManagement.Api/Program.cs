@@ -20,7 +20,7 @@ try
 
     var app = builder.Build();
 
-    await app.ConfigurePipeline().RunAsync();
+    await (await app.ConfigurePipelineAsync()).RunAsync();
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {

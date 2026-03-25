@@ -1,11 +1,8 @@
 using FluentValidation;
 using OrderManagement.Api.Extensions;
-using OrderManagement.Api.Mappers;
-using OrderManagement.Application.Products;
+using OrderManagement.Application.Common.Dispatching;
 using OrderManagement.Application.Products.Commands;
-using OrderManagement.Application.Services;
-using OrderManagement.Domain.Entities;
-using OrderManagement.Domain.ValueObjects;
+using OrderManagement.Application.Products.Queries;
 
 namespace OrderManagement.Api.Endpoints;
 
@@ -39,16 +36,15 @@ public static class ProductEndpoints
         return app;
     }
 
-    private static async Task<IResult> GetProductsAsync(ProductService svc, int page = 1, int pageSize = 100,
+    private static async Task<IResult> GetProductsAsync(IDispatcher dispatcher, int page = 1, int pageSize = 100,
         CancellationToken ct = default)
     {
-        var products = await svc.GetAllProductsAsync(page, pageSize, ct);
-
-        return TypedResults.Ok(products.Select(p => p.ToResponse()).ToList());
+        var products = await dispatcher.QueryAsync(new GetAllProductsQuery(page, pageSize), ct);
+        return TypedResults.Ok(products);
     }
 
     private static async Task<IResult> CreateProductAsync(CreateProductRequest request,
-        IValidator<CreateProductRequest> validator, ProductService svc, CancellationToken ct)
+        IValidator<CreateProductRequest> validator, IDispatcher dispatcher, CancellationToken ct)
     {
         var validation = await validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
@@ -56,38 +52,36 @@ public static class ProductEndpoints
             return Results.ValidationProblem(validation.ToDictionary());
         }
 
-        var price = Money.Create(request.Price, request.Currency);
-        var product = Product.Create(request.Name, request.Sku, price, request.StockQuantity, request.Description);
-        var created = await svc.CreateProductAsync(product, ct);
-
-        return TypedResults.Created($"/api/products/{created.Id}", created.ToResponse());
-    }
-
-    private static async Task<IResult> UpdateProductAsync(Guid id, UpdateProductRequest request,
-        IValidator<UpdateProductRequest> validator, ProductService svc, CancellationToken ct)
-    {
-        var validation = await validator.ValidateAsync(request, ct);
-        if (!validation.IsValid)
-        {
-            return Results.ValidationProblem(validation.ToDictionary());
-        }
-
-        var price = request.Price.HasValue
-            ? Money.Create(request.Price.Value, request.Currency)
-            : null;
-
-        var result = await svc.UpdateProductAsync(id, request.Name, price, request.StockQuantity, ct);
+        var result = await dispatcher.SendAsync(new CreateProductCommand(request), ct);
         if (result.IsFailure)
         {
             return result.Error.ToProblem();
         }
 
-        return TypedResults.Ok(result.Value.ToResponse());
+        return TypedResults.Created($"/api/products/{result.Value.Id}", result.Value);
     }
 
-    private static async Task<IResult> DeleteProductAsync(Guid id, ProductService svc, CancellationToken ct)
+    private static async Task<IResult> UpdateProductAsync(Guid id, UpdateProductRequest request,
+        IValidator<UpdateProductRequest> validator, IDispatcher dispatcher, CancellationToken ct)
     {
-        var result = await svc.DeleteProductAsync(id, ct);
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        var result = await dispatcher.SendAsync(new UpdateProductCommand(id, request), ct);
+        if (result.IsFailure)
+        {
+            return result.Error.ToProblem();
+        }
+
+        return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> DeleteProductAsync(Guid id, IDispatcher dispatcher, CancellationToken ct)
+    {
+        var result = await dispatcher.SendAsync(new DeleteProductCommand(id), ct);
         if (result.IsFailure)
         {
             return result.Error.ToProblem();

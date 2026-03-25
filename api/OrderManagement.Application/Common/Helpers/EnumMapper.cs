@@ -1,4 +1,4 @@
-namespace OrderManagement.Api.Helpers;
+namespace OrderManagement.Application.Common.Helpers;
 
 internal static class EnumMapper
 {
