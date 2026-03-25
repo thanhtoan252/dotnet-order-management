@@ -34,7 +34,7 @@ services:
       - "8180:8180"
     command: start-dev --import-realm
     volumes:
-      - ./keycloak:/opt/keycloak/data/import
+      - ../keycloak:/opt/keycloak/data/import
     depends_on:
       keycloak-db:
         condition: service_healthy
@@ -68,11 +68,11 @@ services:
   # ─── Order Management API ───────────────────────────────────────────────────
   api:
     build:
-      context: ./api
+      context: ../api
       dockerfile: Dockerfile
     container_name: order-api
     environment:
-      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
       ConnectionStrings__DefaultConnection: "${ConnectionStrings__DefaultConnection}"
       Keycloak__MetadataAddress: "http://keycloak:${KC_HTTP_PORT:-8180}/realms/order-management/.well-known/openid-configuration"
     ports:
@@ -89,7 +89,7 @@ services:
   # ─── React UI ───────────────────────────────────────────────────────────────
   ui:
     build:
-      context: ./ui
+      context: ../ui
       dockerfile: Dockerfile
     container_name: order-ui
     ports:
