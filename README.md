@@ -1,4 +1,4 @@
-# Order Management System
+# Order Management — Architecture Showcase
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
@@ -6,7 +6,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
 ![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?logo=keycloak)
 
-A full-stack order management application built with .NET 10 and React 19, demonstrating Domain-Driven Design (DDD), Clean Architecture, Keycloak authentication, and high-concurrency handling.
+A showcase project demonstrating production-grade patterns with .NET 10 (ASP.NET Core Minimal API) and React 19 + TypeScript: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, API-first development with OpenAPI 3.1 + NSwag code generation, and fine-grained Keycloak JWT/UMA authorization — all containerized with Docker Compose.
 
 ---
 
@@ -74,37 +74,39 @@ order-management/
 │   │   │   ├── Dispatching/   # IDispatcher, Dispatcher
 │   │   │   ├── Helpers/       # EnumMapper
 │   │   │   └── Interfaces/    # ICommand, ICommandHandler, IQuery, IQueryHandler, IUnitOfWork
-│   │   ├── Contracts/                     # OpenAPI 3.1 schema files (source of truth)
-│   │   │   ├── orders-management.yaml
-│   │   │   ├── order-query.yaml
-│   │   │   ├── products-management.yaml
-│   │   │   └── product-query.yaml
+│   │   ├── DependencyInjection.cs         # Handler registrations
 │   │   ├── Orders/
 │   │   │   ├── Commands/      # PlaceOrder, ConfirmOrder, ShipOrder, DeliverOrder, CancelOrder, DeleteOrder
-│   │   │   │   └── *Generated.g.cs        # NSwag-generated request/response DTOs
+│   │   │   │   └── OrderCommandsGenerated.g.cs   # NSwag-generated request/response DTOs
+│   │   │   ├── Contracts/                 # OpenAPI 3.1 schema files (source of truth)
+│   │   │   │   ├── orders-management.yaml
+│   │   │   │   └── order-query.yaml
 │   │   │   ├── Queries/       # GetAllOrders, GetOrderById, GetCustomerOrders
-│   │   │   │   └── *Generated.g.cs        # NSwag-generated query DTOs
+│   │   │   │   └── OrderQueriesGenerated.g.cs    # NSwag-generated query DTOs
 │   │   │   └── Mappers/       # OrderMapper (Domain → DTO)
 │   │   └── Products/
 │   │       ├── Commands/      # CreateProduct, UpdateProduct, DeleteProduct
-│   │       │   └── *Generated.g.cs        # NSwag-generated request/response DTOs
+│   │       │   └── ProductCommandsGenerated.g.cs # NSwag-generated request/response DTOs
+│   │       ├── Contracts/                 # OpenAPI 3.1 schema files (source of truth)
+│   │       │   ├── products-management.yaml
+│   │       │   └── product-query.yaml
 │   │       ├── Queries/       # GetAllProducts
-│   │       │   └── *Generated.g.cs        # NSwag-generated query DTOs
+│   │       │   └── ProductQueriesGenerated.g.cs  # NSwag-generated query DTOs
 │   │       └── Mappers/       # ProductMapper (Domain → DTO)
 │   ├── OrderManagement.Infrastructure/
 │   │   ├── Data/
 │   │   │   ├── Configurations/    # EF entity configurations
 │   │   │   ├── Migrations/        # EF migrations
-│   │   │   ├── OrderDbContext.cs
-│   │   │   └── DbSeeder.cs
-│   │   ├── Repositories/          # OrderRepository, ProductRepository
-│   │   └── Persistence/           # UnitOfWork
+│   │   │   └── OrderDbContext.cs
+│   │   ├── DependencyInjection.cs         # Infrastructure service registrations
+│   │   ├── Persistence/           # UnitOfWork
+│   │   └── Repositories/          # OrderRepository, ProductRepository
 │   └── OrderManagement.Api/
-│       ├── Endpoints/             # OrderEndpoints, ProductEndpoints
-│       ├── Middleware/            # GlobalExceptionHandler
 │       ├── Authorization/         # KeycloakAuthorizationHandler
-│       ├── Validators/            # FluentValidation validators
-│       └── Extensions/            # ServiceExtensions, WebApplicationExtensions, ResultExtensions
+│       ├── Endpoints/             # OrderEndpoints, ProductEndpoints
+│       ├── Extensions/            # ServiceExtensions, WebApplicationExtensions, ResultExtensions
+│       ├── Middleware/            # GlobalExceptionHandler
+│       └── Validators/            # FluentValidation validators
 ├── ui/
 │   └── src/
 │       ├── features/
@@ -212,16 +214,22 @@ The Application layer owns **OpenAPI 3.1 YAML contracts** as the single source o
 Each contract is referenced in `OrderManagement.Application.csproj` as an `<OpenApiReference>`. On every build, NSwag generates the corresponding `.g.cs` file:
 
 ```xml
-<OpenApiReference Include="Contracts/orders-management.yaml"
+<OpenApiReference Include="Orders/Contracts/orders-management.yaml"
                   Namespace="OrderManagement.Application.Orders.Commands"
                   OutputPath="Orders/Commands/OrderCommandsGenerated.g.cs"
                   CodeGenerator="NSwagCSharp">
   <Options>
     /GenerateClientClasses:false
+    /GenerateClientInterfaces:false
     /GenerateDtoTypes:true
     /JsonLibrary:SystemTextJson
+    /GenerateDefaultValues:true
     /GenerateNullableReferenceTypes:true
+    /UseBaseUrl:false
+    /DateType:System.DateTimeOffset
     /DateTimeType:System.DateTimeOffset
+    /ArrayType:System.Collections.Generic.ICollection
+    /ArrayInstanceType:System.Collections.Generic.List
   </Options>
 </OpenApiReference>
 ```
@@ -394,7 +402,7 @@ SA_PASSWORD=YourStrong@Password docker compose up db keycloak keycloak-db
 dotnet run --project api/OrderManagement.Api
 ```
 
-The API runs on `http://localhost:8080`. Migrations are applied automatically on startup (`MigrateOnStartup: true` in `appsettings.Development.json`). Products are seeded when `SeedOnStartup: true`.
+The API runs on `http://localhost:8080`. Migrations are applied automatically on startup when running in the `Development` environment.
 
 **3. Run the UI:**
 
