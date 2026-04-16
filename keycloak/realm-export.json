@@ -9,8 +9,16 @@
   "editUsernameAllowed": false,
   "roles": {
     "realm": [
-      { "name": "admin", "composite": false, "clientRole": false },
-      { "name": "user",  "composite": false, "clientRole": false }
+      {
+        "name": "admin",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "user",
+        "composite": false,
+        "clientRole": false
+      }
     ]
   },
   "clients": [
@@ -23,8 +31,12 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*"],
-      "webOrigins": ["http://localhost:3000"],
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
@@ -52,6 +64,17 @@
             "access.token.claim": "true",
             "id.token.claim": "true"
           }
+        },
+        {
+          "name": "catalog-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "catalog-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
         }
       ]
     },
@@ -76,11 +99,7 @@
           { "name": "order:ship" },
           { "name": "order:deliver" },
           { "name": "order:delete" },
-          { "name": "order:clear" },
-          { "name": "product:create" },
-          { "name": "product:seed" },
-          { "name": "product:update" },
-          { "name": "product:delete" }
+          { "name": "order:clear" }
         ],
         "resources": [
           {
@@ -95,19 +114,6 @@
               { "name": "order:deliver" },
               { "name": "order:delete" },
               { "name": "order:clear" }
-            ]
-          },
-          {
-            "name": "Product Resource",
-            "type": "product",
-            "ownerManagedAccess": false,
-            "attributes": {},
-            "uris": [],
-            "scopes": [
-              { "name": "product:create" },
-              { "name": "product:seed" },
-              { "name": "product:update" },
-              { "name": "product:delete" }
             ]
           }
         ],
@@ -130,6 +136,56 @@
               "resources": "[\"Order Resource\"]",
               "scopes": "[\"order:confirm\",\"order:ship\",\"order:deliver\",\"order:delete\",\"order:clear\"]",
               "applyPolicies": "[\"Admin Role Policy\"]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "clientId": "catalog-api",
+      "name": "Catalog API",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "catalog-api-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "authorizationSettings": {
+        "allowRemoteResourceManagement": true,
+        "policyEnforcementMode": "ENFORCING",
+        "decisionStrategy": "UNANIMOUS",
+        "scopes": [
+          { "name": "product:create" },
+          { "name": "product:seed" },
+          { "name": "product:update" },
+          { "name": "product:delete" }
+        ],
+        "resources": [
+          {
+            "name": "Product Resource",
+            "type": "product",
+            "ownerManagedAccess": false,
+            "attributes": {},
+            "uris": [],
+            "scopes": [
+              { "name": "product:create" },
+              { "name": "product:seed" },
+              { "name": "product:update" },
+              { "name": "product:delete" }
+            ]
+          }
+        ],
+        "policies": [
+          {
+            "name": "Admin Role Policy",
+            "type": "role",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "roles": "[{\"id\":\"admin\",\"required\":true}]"
             }
           },
           {
@@ -156,9 +212,16 @@
       "firstName": "Admin",
       "lastName": "User",
       "credentials": [
-        { "type": "password", "value": "admin123", "temporary": false }
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["admin", "user"]
+      "realmRoles": [
+        "admin",
+        "user"
+      ]
     },
     {
       "username": "user",
@@ -168,9 +231,15 @@
       "firstName": "Regular",
       "lastName": "User",
       "credentials": [
-        { "type": "password", "value": "user123", "temporary": false }
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["user"]
+      "realmRoles": [
+        "user"
+      ]
     }
   ]
 }

@@ -5,6 +5,7 @@ import type { Product } from '../types';
 interface Props {
   products: Product[];
   loading: boolean;
+  canManage: boolean;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
 }
@@ -15,7 +16,7 @@ const stockBadgeCls = (qty: number) => {
   return 'bg-emerald-100 text-emerald-700';
 };
 
-export const ProductsTable = ({ products, loading, onEdit, onDelete }: Props) => {
+export const ProductsTable = ({ products, loading, canManage, onEdit, onDelete }: Props) => {
   if (loading && products.length === 0) {
     return <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>;
   }
@@ -40,7 +41,7 @@ export const ProductsTable = ({ products, loading, onEdit, onDelete }: Props) =>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+              {canManage && <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -58,26 +59,28 @@ export const ProductsTable = ({ products, loading, onEdit, onDelete }: Props) =>
                     {p.stockQuantity} units
                   </span>
                 </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center justify-end gap-1">
-                    <Tooltip label="Edit product">
-                      <button
-                        onClick={() => onEdit(p)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip label="Delete product">
-                      <button
-                        onClick={() => onDelete(p)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </Tooltip>
-                  </div>
-                </td>
+                {canManage && (
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center justify-end gap-1">
+                      <Tooltip label="Edit product">
+                        <button
+                          onClick={() => onEdit(p)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label="Delete product">
+                        <button
+                          onClick={() => onDelete(p)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

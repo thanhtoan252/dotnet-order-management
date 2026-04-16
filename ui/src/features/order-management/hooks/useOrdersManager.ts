@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { ApiError } from '../../../lib/api';
 import type { Order, CreateOrderRequest } from '../types';
 import type { Product } from '../../product-management/types';
 import { fetchProductsApi } from '../../product-management';
@@ -60,8 +61,8 @@ export const useOrdersManager = () => {
       const updated = await fn();
       setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)));
       toast.success(successMsg);
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || e?.message || 'Action failed.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Action failed.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -76,8 +77,8 @@ export const useOrdersManager = () => {
       setOrders(prev => [order, ...prev]);
       toast.success('Order placed successfully');
       return null;
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Failed to place order.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Failed to place order.';
       toast.error(msg);
       return msg;
     } finally {
@@ -97,8 +98,8 @@ export const useOrdersManager = () => {
       setOrders(prev => prev.filter(o => o.id !== id));
       toast.success('Order deleted');
       return null;
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Failed to delete order.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Failed to delete order.';
       setError(msg);
       toast.error(msg);
       return msg;

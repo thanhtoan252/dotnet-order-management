@@ -32,6 +32,6 @@ export interface CreateOrderRequest {
     province: string;
     zipCode: string;
   };
-  lines: { productId: string; quantity: number }[];
+  lines: { productId: string; quantity: number; productName: string; unitPrice: number; currency: string }[];
   notes?: string;
 }

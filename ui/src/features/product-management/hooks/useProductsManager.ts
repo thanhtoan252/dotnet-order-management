@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { ApiError } from '../../../lib/api';
 import type { Product, CreateProductRequest, UpdateProductRequest } from '../types';
 import { fetchProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../api';
 
@@ -29,8 +30,8 @@ export const useProductsManager = () => {
       setProducts(prev => [...prev, p]);
       toast.success('Product created');
       return null;
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Failed to create product.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Failed to create product.';
       toast.error(msg);
       return msg;
     } finally {
@@ -45,8 +46,8 @@ export const useProductsManager = () => {
       setProducts(prev => prev.map(p => (p.id === updated.id ? updated : p)));
       toast.success('Product updated');
       return null;
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Failed to update product.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Failed to update product.';
       toast.error(msg);
       return msg;
     } finally {
@@ -62,8 +63,8 @@ export const useProductsManager = () => {
       setProducts(prev => prev.filter(p => p.id !== id));
       toast.success('Product deleted');
       return null;
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Failed to delete product.';
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : 'Failed to delete product.';
       setError(msg);
       toast.error(msg);
       return msg;

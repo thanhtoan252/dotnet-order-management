@@ -25,7 +25,7 @@ const FormField = ({ label, children }: { label: string; children: React.ReactNo
 const emptyForm = (): CreateOrderRequest => ({
   customerId: crypto.randomUUID(),
   shippingAddress: { street: '', city: '', province: '', zipCode: '' },
-  lines: [{ productId: '', quantity: 1 }],
+  lines: [{ productId: '', quantity: 1, productName: '', unitPrice: 0, currency: 'USD' }],
 });
 
 export const CreateOrderModal = ({ products, loading, onClose, onSubmit }: Props) => {
@@ -77,7 +77,19 @@ export const CreateOrderModal = ({ products, loading, onClose, onSubmit }: Props
           <select
             className={inputCls}
             value={form.lines[0].productId}
-            onChange={e => setForm(f => ({ ...f, lines: [{ ...f.lines[0], productId: e.target.value }] }))}
+            onChange={e => {
+              const selected = products.find(p => p.id === e.target.value);
+              setForm(f => ({
+                ...f,
+                lines: [{
+                  ...f.lines[0],
+                  productId: e.target.value,
+                  productName: selected?.name ?? '',
+                  unitPrice: selected?.price ?? 0,
+                  currency: selected?.currency ?? 'USD',
+                }],
+              }));
+            }}
           >
             <option value="">-- Select product --</option>
             {products.map(p => (

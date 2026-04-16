@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useOrdersManager } from '../hooks/useOrdersManager';
+import { usePermissions } from '../../auth/usePermissions';
 import { OrdersTable } from './OrdersTable';
 import { CreateOrderModal } from './CreateOrderModal';
 import { CancelOrderModal } from './CancelOrderModal';
@@ -14,6 +15,7 @@ export const OrdersManager = () => {
     placeOrder, cancelOrder, deleteOrder,
     confirmOrder, shipOrder, deliverOrder,
   } = useOrdersManager();
+  const { canManageOrders } = usePermissions();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
@@ -41,13 +43,15 @@ export const OrdersManager = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            New Order
-          </button>
+          {canManageOrders && (
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              New Order
+            </button>
+          )}
         </div>
       </div>
 
@@ -56,6 +60,7 @@ export const OrdersManager = () => {
           orders={orders}
           loading={loading}
           hasMore={hasMore}
+          canManage={canManageOrders}
           onConfirm={confirmOrder}
           onShip={shipOrder}
           onDeliver={deliverOrder}
