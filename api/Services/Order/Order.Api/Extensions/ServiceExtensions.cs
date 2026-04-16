@@ -30,8 +30,7 @@ internal static class ServiceExtensions
                 retainedFileCountLimit: 7));
     }
 
-    public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddApplication()
@@ -78,8 +77,7 @@ internal static class ServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddCorsPolicy(
-        this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 

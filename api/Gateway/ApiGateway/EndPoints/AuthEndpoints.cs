@@ -1,8 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
-using ApiGateway.Models;
-using ApiGateway.Options;
+using ApiGateway.Application.Contracts;
+using ApiGateway.Application.Options;
+using ApiGateway.Application.Services;
 using Microsoft.Extensions.Options;
+using Refit;
 
 namespace ApiGateway.EndPoints;
 
@@ -13,39 +14,33 @@ internal static class AuthEndpoints
         app.MapPost("/api/auth/login", async (
             LoginRequest request,
             IOptions<KeycloakSettings> keycloakOptions,
-            IHttpClientFactory httpClientFactory,
+            IKeycloakClient keycloakClient,
             ILogger<Program> logger) =>
         {
             var keycloak = keycloakOptions.Value;
-            var httpClient = httpClientFactory.CreateClient("keycloak");
 
-            var formData = new FormUrlEncodedContent(new Dictionary<string, string>
+            var form = new Dictionary<string, string>
             {
                 ["grant_type"] = "password",
                 ["client_id"] = keycloak.ClientId,
                 ["username"] = request.Username,
                 ["password"] = request.Password
-            });
+            };
 
-            using var response = await httpClient.PostAsync(keycloak.TokenEndpoint, formData);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
+                var token = await keycloakClient.GetTokenAsync(form);
+                var (username, roles) = ExtractClaims(token.AccessToken, request.Username);
+
+                return Results.Ok(new LoginResponse(token.AccessToken, token.RefreshToken, username, roles, token.ExpiresIn));
+            }
+            catch (ApiException ex)
+            {
                 logger.LogWarning("Keycloak authentication failed: {StatusCode} {Error}",
-                    (int)response.StatusCode, errorBody);
+                    (int)ex.StatusCode, ex.Content);
 
                 return Results.Unauthorized();
             }
-
-            var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-            var accessToken = json.GetProperty("access_token").GetString()!;
-            var refreshToken = json.GetProperty("refresh_token").GetString()!;
-            var expiresIn = json.GetProperty("expires_in").GetInt32();
-
-            var (username, roles) = ExtractClaims(accessToken, request.Username);
-
-            return Results.Ok(new LoginResponse(accessToken, refreshToken, username, roles, expiresIn));
         })
         .AllowAnonymous()
         .RequireCors("CorsPolicy")

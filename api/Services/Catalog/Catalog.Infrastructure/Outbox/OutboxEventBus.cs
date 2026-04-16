@@ -10,7 +10,7 @@ namespace Catalog.Infrastructure.Outbox;
 /// </summary>
 public class OutboxEventBus(IOutboxStore outboxStore) : IEventBus
 {
-    public Task PublishAsync<TEvent>(TEvent @event, string topic, string? partitionKey = null,
+    public ValueTask PublishAsync<TEvent>(TEvent @event, string topic, string? partitionKey = null,
         CancellationToken ct = default) where TEvent : IIntegrationEvent
     {
         var message = new OutboxMessage
@@ -22,6 +22,6 @@ public class OutboxEventBus(IOutboxStore outboxStore) : IEventBus
         };
 
         outboxStore.Add(message);
-        return Task.CompletedTask;
+        return default;
     }
 }

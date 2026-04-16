@@ -1,4 +1,4 @@
-using ApiGateway.Extensions;
+using ApiGateway.Infrastructure;
 using ApiGateway.EndPoints;
 using Serilog;
 

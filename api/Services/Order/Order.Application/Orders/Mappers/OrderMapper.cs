@@ -1,5 +1,6 @@
 using Order.Application.Common.Helpers;
 using Order.Domain.Entities;
+using Shared.Core.ValueObjects;
 using CmdDto = Order.Application.Orders.Commands;
 using QryDto = Order.Application.Orders.Queries;
 
@@ -17,25 +18,11 @@ internal static class OrderMapper
             Status = order.Status.MapTo<CmdDto.OrderStatus>(),
             TotalAmount = order.TotalAmount.Amount,
             Currency = order.TotalAmount.Currency,
-            ShippingAddress = new CmdDto.AddressDto
-            {
-                Street = order.ShippingAddress.Street,
-                City = order.ShippingAddress.City,
-                Province = order.ShippingAddress.Province,
-                ZipCode = order.ShippingAddress.ZipCode
-            },
+            ShippingAddress = order.ShippingAddress.ToCommandDto(),
             CreatedAt = new DateTimeOffset(order.CreatedAt, TimeSpan.Zero),
             Items = order.Items
                 .Where(i => !i.IsCancelled)
-                .Select(i => new CmdDto.OrderItemResponse
-                {
-                    ProductId = i.ProductId,
-                    ProductName = i.ProductName,
-                    UnitPrice = i.UnitPrice.Amount,
-                    Currency = i.UnitPrice.Currency,
-                    Quantity = i.Quantity,
-                    LineTotal = i.LineTotal.Amount
-                })
+                .Select(i => i.ToCommandDto())
                 .ToList()
         };
     }
@@ -50,26 +37,60 @@ internal static class OrderMapper
             Status = order.Status.MapTo<QryDto.OrderStatus>(),
             TotalAmount = order.TotalAmount.Amount,
             Currency = order.TotalAmount.Currency,
-            ShippingAddress = new QryDto.AddressDto
-            {
-                Street = order.ShippingAddress.Street,
-                City = order.ShippingAddress.City,
-                Province = order.ShippingAddress.Province,
-                ZipCode = order.ShippingAddress.ZipCode
-            },
+            ShippingAddress = order.ShippingAddress.ToQueryDto(),
             CreatedAt = new DateTimeOffset(order.CreatedAt, TimeSpan.Zero),
             Items = order.Items
                 .Where(i => !i.IsCancelled)
-                .Select(i => new QryDto.OrderItemResponse
-                {
-                    ProductId = i.ProductId,
-                    ProductName = i.ProductName,
-                    UnitPrice = i.UnitPrice.Amount,
-                    Currency = i.UnitPrice.Currency,
-                    Quantity = i.Quantity,
-                    LineTotal = i.LineTotal.Amount
-                })
+                .Select(i => i.ToQueryDto())
                 .ToList()
+        };
+    }
+
+    private static CmdDto.AddressDto ToCommandDto(this Address address)
+    {
+        return new CmdDto.AddressDto
+        {
+            Street = address.Street,
+            City = address.City,
+            Province = address.Province,
+            ZipCode = address.ZipCode
+        };
+    }
+
+    private static CmdDto.OrderItemResponse ToCommandDto(this OrderItem item)
+    {
+        return new CmdDto.OrderItemResponse
+        {
+            ProductId = item.ProductId,
+            ProductName = item.ProductName,
+            UnitPrice = item.UnitPrice.Amount,
+            Currency = item.UnitPrice.Currency,
+            Quantity = item.Quantity,
+            LineTotal = item.LineTotal.Amount
+        };
+    }
+
+    private static QryDto.AddressDto ToQueryDto(this Address address)
+    {
+        return new QryDto.AddressDto
+        {
+            Street = address.Street,
+            City = address.City,
+            Province = address.Province,
+            ZipCode = address.ZipCode
+        };
+    }
+
+    private static QryDto.OrderItemResponse ToQueryDto(this OrderItem item)
+    {
+        return new QryDto.OrderItemResponse
+        {
+            ProductId = item.ProductId,
+            ProductName = item.ProductName,
+            UnitPrice = item.UnitPrice.Amount,
+            Currency = item.UnitPrice.Currency,
+            Quantity = item.Quantity,
+            LineTotal = item.LineTotal.Amount
         };
     }
 }

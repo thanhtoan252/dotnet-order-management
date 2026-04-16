@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ApiGateway.Options;
+namespace ApiGateway.Application.Options;
 
 public sealed class KeycloakSettings
 {

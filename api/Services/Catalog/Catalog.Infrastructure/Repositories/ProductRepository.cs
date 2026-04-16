@@ -34,6 +34,7 @@ public class ProductRepository(CatalogDbContext db) : IProductRepository
     {
         return await db.Products
             .Where(p => p.SKU.StartsWith(prefix))
+            .AsNoTracking()
             .ToListAsync(ct);
     }
 

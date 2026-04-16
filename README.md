@@ -4,7 +4,7 @@
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
-![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?logo=keycloak)
+![Keycloak](https://img.shields.io/badge/Keycloak-26.0-4D4D4D?logo=keycloak)
 ![Kafka](https://img.shields.io/badge/Kafka-KRaft-231F20?logo=apachekafka)
 
 A showcase project demonstrating production-grade microservices patterns with .NET 10: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, event-driven communication via Apache Kafka, API Gateway (YARP), resilience patterns (retry, circuit breaker, rate limiting), and Keycloak JWT/UMA authorization — all containerized with Docker Compose.
@@ -105,7 +105,7 @@ A showcase project demonstrating production-grade microservices patterns with .N
 | Catalog DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1434 |
 | Kafka (KRaft) | `confluentinc/cp-kafka:7.9.0` | 29092 |
 | Kafka UI | `provectuslabs/kafka-ui:latest` | 9090 |
-| Keycloak | `quay.io/keycloak/keycloak:26.2` | 8180 |
+| Keycloak | `quay.io/keycloak/keycloak:26.0` | 8180 |
 | Keycloak DB | `postgres:16-alpine` | — |
 
 ---
@@ -135,12 +135,14 @@ api/
 │   │   ├── Order.Domain/                 # OrderAggregate, OrderItem, OrderStatus, domain events
 │   │   ├── Order.Application/            # CQRS handlers, Kafka consumers, OpenAPI contracts
 │   │   ├── Order.Infrastructure/         # OrderDbContext, repositories, Kafka registration
-│   │   └── Order.Api/                    # Minimal API endpoints, auth, validators
+│   │   ├── Order.Api/                    # Minimal API endpoints, auth, validators
+│   │   └── Order.MigrationRunner/        # Standalone console app — applies EF Core migrations in Docker
 │   └── Catalog/
 │       ├── Catalog.Domain/               # Product aggregate, stock management
 │       ├── Catalog.Application/          # CQRS handlers, Kafka consumers, OpenAPI contracts
 │       ├── Catalog.Infrastructure/       # CatalogDbContext, repositories, Kafka registration
-│       └── Catalog.Api/                  # Minimal API endpoints, auth, validators
+│       ├── Catalog.Api/                  # Minimal API endpoints, auth, validators
+│       └── Catalog.MigrationRunner/      # Standalone console app — applies EF Core migrations in Docker
 │
 └── Gateway/
     └── ApiGateway/                       # YARP reverse proxy, rate limiting, JWT forwarding
@@ -152,6 +154,8 @@ docker-compose/
 keycloak/                                 # Realm import config
 ui/                                       # React 19 frontend
 ```
+
+**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
 
 ### Clean Architecture (per service)
 
@@ -273,13 +277,11 @@ Create `docker-compose/.env`:
 SA_PASSWORD=YourStr0ng!Pass
 
 # ─── Keycloak ─────────────────────────────────────────────────────────────────
-KC_DB_PASSWORD=keycloak
-KC_ADMIN=admin
-KC_ADMIN_PASSWORD=admin
-KC_HOSTNAME=localhost
-KC_HTTP_PORT=8180
+KEYCLOAK_DB_PASSWORD=keycloak
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
 
-# ─── ASP.NET Core ─────────────────────────────────────────────────────────────
+# ─── ASP.NET Core (optional, defaults to Development) ────────────────────────
 ASPNETCORE_ENVIRONMENT=Development
 ```
 
@@ -297,6 +299,8 @@ VITE_API_BASE_URL=http://localhost:8080/api
 cd docker-compose
 docker compose up --build
 ```
+
+**Startup order:** DB → MigrationRunner (waits for DB healthy) → API service (waits for migration success + Kafka healthy + Keycloak healthy) → Gateway (waits for APIs started) → UI (waits for Gateway).
 
 | Service | URL |
 |---|---|
@@ -344,6 +348,8 @@ npm run dev
 ## API Endpoints
 
 All endpoints are accessed through the API Gateway at `http://localhost:8080`.
+
+Scalar API docs available at `/scalar/v1` on each service in Development mode.
 
 ### Orders
 

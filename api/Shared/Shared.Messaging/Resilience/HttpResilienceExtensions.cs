@@ -10,10 +10,7 @@ public static class HttpResilienceExtensions
     ///     Adds a named HttpClient with standard resilience pipeline:
     ///     retry (3 attempts, exponential backoff) + circuit breaker + timeouts.
     /// </summary>
-    public static IServiceCollection AddResilientHttpClient(
-        this IServiceCollection services,
-        string name,
-        string baseAddress)
+    public static IServiceCollection AddResilientHttpClient(this IServiceCollection services, string name, string baseAddress)
     {
         services
             .AddHttpClient(name, client =>
