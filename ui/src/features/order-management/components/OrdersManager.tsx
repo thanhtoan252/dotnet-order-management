@@ -55,7 +55,7 @@ export const OrdersManager = () => {
         </div>
       </div>
 
-<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <OrdersTable
           orders={orders}
           loading={loading}

@@ -21,7 +21,6 @@ public class DeleteProductHandler(IProductRepository productRepo, IUnitOfWork uo
         }
 
         product.IsDeleted = true;
-        productRepo.Update(product);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} deleted.", command.ProductId);

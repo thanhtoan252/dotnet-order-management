@@ -35,8 +35,13 @@ public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uo
 
         if (request.Price.HasValue)
         {
-            var price = Money.Create(request.Price.Value, request.Currency);
-            product.UpdatePrice(price);
+            var priceResult = Money.Create(request.Price.Value, request.Currency ?? product.Price.Currency);
+            if (priceResult.IsFailure)
+            {
+                return priceResult.Error;
+            }
+
+            product.UpdatePrice(priceResult.Value);
         }
 
         if (request.StockQuantity.HasValue)
@@ -60,7 +65,6 @@ public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uo
             }
         }
 
-        productRepo.Update(product);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} updated.", command.ProductId);

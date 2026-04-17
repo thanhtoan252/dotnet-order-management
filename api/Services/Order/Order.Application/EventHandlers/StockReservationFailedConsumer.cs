@@ -33,7 +33,6 @@ public class StockReservationFailedConsumer(
             return;
         }
 
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} auto-cancelled due to stock reservation failure", order.OrderNumber);

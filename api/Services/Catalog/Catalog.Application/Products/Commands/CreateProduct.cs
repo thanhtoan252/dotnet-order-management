@@ -17,8 +17,13 @@ public class CreateProductHandler(IProductRepository productRepo, IUnitOfWork uo
     public async Task<Result<ProductResponse>> HandleAsync(CreateProductCommand command, CancellationToken ct)
     {
         var request = command.Request;
-        var price = Money.Create(request.Price, request.Currency);
-        var productResult = Product.Create(request.Name, request.Sku, price, request.StockQuantity, request.Description);
+        var priceResult = Money.Create(request.Price, request.Currency);
+        if (priceResult.IsFailure)
+        {
+            return priceResult.Error;
+        }
+
+        var productResult = Product.Create(request.Name, request.Sku, priceResult.Value, request.StockQuantity, request.Description);
 
         if (productResult.IsFailure)
         {

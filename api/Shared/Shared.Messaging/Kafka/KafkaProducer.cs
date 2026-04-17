@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Shared.Messaging.Kafka;
 
-public class KafkaProducer : IDisposable
+public sealed class KafkaProducer : IDisposable, IAsyncDisposable
 {
     private readonly IProducer<string, string> _producer;
     private readonly ILogger<KafkaProducer> _logger;
@@ -41,5 +41,12 @@ public class KafkaProducer : IDisposable
     {
         _producer.Flush(TimeSpan.FromSeconds(10));
         _producer.Dispose();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        return ValueTask.CompletedTask;
     }
 }

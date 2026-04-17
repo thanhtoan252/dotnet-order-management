@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Modal } from '../../../components/Modal';
+import { FormField, inputCls } from '../../../components/FormField';
 import type { CreateOrderRequest } from '../types';
 import type { Product } from '../../product-management/types';
 
@@ -10,17 +11,6 @@ interface Props {
   onClose: () => void;
   onSubmit: (form: CreateOrderRequest) => Promise<string | null>;
 }
-
-const inputCls =
-  'w-full px-3 py-2 text-sm text-slate-900 bg-white border border-slate-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-400 transition-shadow';
-
-const FormField = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    {children}
-  </div>
-);
 
 const emptyForm = (): CreateOrderRequest => ({
   customerId: crypto.randomUUID(),

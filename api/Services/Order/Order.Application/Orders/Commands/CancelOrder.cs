@@ -38,8 +38,6 @@ public class CancelOrderHandler(
             return cancelResult.Error;
         }
 
-        orderRepo.Update(order);
-
         // Publish integration event for Catalog Service to restore stock
         var integrationEvent = new OrderCancelledIntegrationEvent(
             Guid.NewGuid(),

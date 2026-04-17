@@ -76,13 +76,13 @@ A showcase project demonstrating production-grade microservices patterns with .N
 |---|---|
 | .NET 10 / ASP.NET Core Minimal API | Web framework |
 | Entity Framework Core 10 + SQL Server | ORM + database (per service) |
-| Apache Kafka (Confluent.Kafka) | Event-driven messaging |
-| YARP Reverse Proxy | API Gateway |
+| Apache Kafka (Confluent.Kafka 2.8) | Event-driven messaging |
+| YARP 2.3 Reverse Proxy | API Gateway |
 | Keycloak 26 (JWT + UMA) | Authentication & authorization |
 | Microsoft.Extensions.Http.Resilience | Retry + circuit breaker (Polly v8) |
 | ASP.NET Core Rate Limiting | Fixed window, sliding window, concurrency |
-| FluentValidation | Request validation |
-| Serilog | Structured logging |
+| FluentValidation 12 | Request validation |
+| Serilog 4.2 | Structured logging |
 | Scalar | API reference UI (dev only) |
 | NSwag | OpenAPI → C# DTO code generation |
 | Central Package Management | Unified NuGet version control |
@@ -91,11 +91,11 @@ A showcase project demonstrating production-grade microservices patterns with .N
 
 | Technology | Purpose |
 |---|---|
-| React 19 + TypeScript 5 | UI framework |
+| React 19 + TypeScript 5.9 | UI framework |
 | Vite 8 | Build tool / dev server |
 | Tailwind CSS 4 | Styling |
-| Axios | HTTP client |
-| keycloak-js | Keycloak SSO integration |
+| Lucide React | Icon library |
+| Sonner | Toast notifications |
 
 ### Infrastructure
 
@@ -106,7 +106,7 @@ A showcase project demonstrating production-grade microservices patterns with .N
 | Kafka (KRaft) | `confluentinc/cp-kafka:7.9.0` | 29092 |
 | Kafka UI | `provectuslabs/kafka-ui:latest` | 9090 |
 | Keycloak | `quay.io/keycloak/keycloak:26.0` | 8180 |
-| Keycloak DB | `postgres:16-alpine` | — |
+| Keycloak DB | `postgres:16-alpine` | internal |
 
 ---
 
@@ -149,10 +149,21 @@ api/
 
 docker-compose/
 ├── docker-compose.yml
+├── keycloak/
+│   └── realm-import.json                 # Auto-imported on first startup
 └── .env
 
-keycloak/                                 # Realm import config
 ui/                                       # React 19 frontend
+├── src/
+│   ├── features/
+│   │   ├── auth/                         # Keycloak login, role-based access
+│   │   ├── order-management/             # Order CRUD, state machine actions
+│   │   └── product-management/           # Product CRUD
+│   ├── components/                       # Shared UI (Modal, ErrorBoundary, Tooltip)
+│   └── lib/api/                          # REST client, error handling
+├── Dockerfile                            # Multi-stage Node → nginx
+├── nginx.conf                            # SPA fallback + API proxy
+└── vite.config.ts
 ```
 
 **MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
@@ -220,6 +231,27 @@ OpenAPI 3.1 YAML contracts are the single source of truth for request/response t
 
 ---
 
+## Frontend
+
+The React 19 SPA provides a responsive dashboard for managing orders and products. Key design choices:
+
+- **Authentication** — Direct Keycloak login form with JWT stored in localStorage. Bearer tokens are attached to every API request. Role-based UI guards hide actions the user lacks permissions for.
+- **Navigation** — Hash-based routing (`#products`, `#orders`) without a router library
+- **State management** — React Context + component-level state (no external library)
+- **API layer** — Custom fetch-based REST client with ProblemDetails error handling and 30s timeout
+- **UI** — Responsive sidebar layout (collapsible on desktop, hamburger on mobile), modal-based forms for CRUD operations, color-coded status badges, and toast notifications via Sonner
+
+### Features
+
+| Feature | Description |
+|---|---|
+| **Product Management** | List (paginated), create, edit, and delete products (name, SKU, price, currency, stock quantity, description) |
+| **Order Management** | List (paginated), place order, confirm → ship → deliver lifecycle, cancel with reason, soft-delete |
+| **Real-time Status** | Status badges reflect async saga results (Pending → Confirmed / Cancelled) |
+| **Permission-aware UI** | Action buttons are shown/hidden based on the authenticated user's Keycloak roles |
+
+---
+
 ## Resilience Patterns
 
 ### API Gateway — Rate Limiting
@@ -256,6 +288,13 @@ JWT Bearer tokens validated against Keycloak at the API Gateway level and forwar
 | `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order Resource |
 | `product:create`, `product:update`, `product:delete` | Product Resource |
 
+Keycloak realm (`order-management`) is auto-imported from `docker-compose/keycloak/realm-import.json` on first startup. Pre-configured users:
+
+| User | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | Admin |
+| `user` | `user123` | Standard user |
+
 ---
 
 ## Getting Started
@@ -281,8 +320,8 @@ KEYCLOAK_DB_PASSWORD=keycloak
 KEYCLOAK_ADMIN=admin
 KEYCLOAK_ADMIN_PASSWORD=admin
 
-# ─── ASP.NET Core (optional, defaults to Development) ────────────────────────
-ASPNETCORE_ENVIRONMENT=Development
+# ─── ASP.NET Core ────────────────────────────────────────────────────────────
+ASPNETCORE_ENVIRONMENT=Docker-Compose
 ```
 
 #### 2. `ui/.env.local`
@@ -310,8 +349,6 @@ docker compose up --build
 | Catalog Service | http://localhost:8082 |
 | Kafka UI | http://localhost:9090 |
 | Keycloak Admin | http://localhost:8180 |
-
-Default Keycloak admin credentials: `admin` / `admin`
 
 ### Run locally (development)
 
@@ -358,11 +395,11 @@ Scalar API docs available at `/scalar/v1` on each service in Development mode.
 | `GET` | `/api/orders` | List all orders (paginated) | — |
 | `GET` | `/api/orders/{id}` | Get order by ID | — |
 | `GET` | `/api/orders/customer/{customerId}` | List orders for a customer | — |
-| `POST` | `/api/orders` | Place a new order | — |
+| `POST` | `/api/orders` | Place a new order | Bearer |
 | `POST` | `/api/orders/{id}/confirm` | Confirm order | `order:confirm` |
 | `POST` | `/api/orders/{id}/ship` | Mark as shipped | `order:ship` |
 | `POST` | `/api/orders/{id}/deliver` | Mark as delivered | `order:deliver` |
-| `POST` | `/api/orders/{id}/cancel` | Cancel order | — |
+| `POST` | `/api/orders/{id}/cancel` | Cancel order | Bearer |
 | `DELETE` | `/api/orders/{id}` | Soft-delete order | `order:delete` |
 
 ### Products
@@ -373,6 +410,12 @@ Scalar API docs available at `/scalar/v1` on each service in Development mode.
 | `POST` | `/api/products` | Create product | `product:create` |
 | `PUT` | `/api/products/{id}` | Update product | `product:update` |
 | `DELETE` | `/api/products/{id}` | Soft-delete product | `product:delete` |
+
+### Internal (no auth, not exposed through Gateway to external clients)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal/products/stock-check` | Check stock availability |
 
 ---
 

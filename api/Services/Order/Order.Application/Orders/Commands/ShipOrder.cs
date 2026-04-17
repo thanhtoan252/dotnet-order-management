@@ -27,7 +27,6 @@ public class ShipOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, ILogg
             return result.Error;
         }
 
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} shipped by {User}.", order.OrderNumber, command.ShippedBy);

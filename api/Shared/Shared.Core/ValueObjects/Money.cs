@@ -1,3 +1,5 @@
+using Shared.Core.Domain;
+
 namespace Shared.Core.ValueObjects;
 
 /// <summary>
@@ -10,14 +12,17 @@ public sealed record Money(decimal Amount, string Currency = "USD")
         return new Money(0, currency);
     }
 
-    public static Money Create(decimal amount, string currency = "USD")
+    public static Result<Money> Create(decimal amount, string currency = "USD")
     {
         if (amount < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(amount), "Amount cannot be negative.");
+            return new Error("Money.NegativeAmount", "Amount cannot be negative.");
         }
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(currency);
+        if (string.IsNullOrWhiteSpace(currency))
+        {
+            return new Error("Money.InvalidCurrency", "Currency cannot be empty.");
+        }
 
         return new Money(amount, currency.ToUpperInvariant());
     }

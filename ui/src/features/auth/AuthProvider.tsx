@@ -1,21 +1,7 @@
-import { createContext, useContext, useState, useCallback, type ReactNode, type FormEvent } from 'react';
+import { useState, useCallback, type ReactNode, type FormEvent } from 'react';
 import { apiClient } from '../../lib/api';
 import { LayoutGrid } from 'lucide-react';
-
-interface AuthContextValue {
-  isAuthenticated: boolean;
-  username?: string;
-  roles: string[];
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue>({
-  isAuthenticated: false,
-  roles: [],
-  logout: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+import { AuthContext } from './AuthContext';
 
 interface StoredUser {
   username: string;

@@ -59,10 +59,16 @@ public class PlaceOrderHandler(
 
         foreach (var line in request.Lines)
         {
+            var priceResult = Money.Create(line.UnitPrice, line.Currency ?? "USD");
+            if (priceResult.IsFailure)
+            {
+                return priceResult.Error;
+            }
+
             var addResult = order.AddItem(
                 line.ProductId,
                 line.ProductName ?? $"Product-{line.ProductId}",
-                Money.Create(line.UnitPrice, line.Currency ?? "USD"),
+                priceResult.Value,
                 line.Quantity);
 
             if (addResult.IsFailure)

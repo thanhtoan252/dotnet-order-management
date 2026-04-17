@@ -36,7 +36,6 @@ public class StockReservedConsumer(
             return;
         }
 
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} auto-confirmed after stock reservation", order.OrderNumber);

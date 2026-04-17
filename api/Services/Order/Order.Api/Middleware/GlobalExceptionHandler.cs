@@ -39,6 +39,7 @@ public class GlobalExceptionHandler(IWebHostEnvironment env) : IExceptionHandler
             Status = statusCode,
             Title = title,
             Detail = detail,
+            Type = $"https://httpstatuses.com/{statusCode}",
             Extensions =
             {
                 ["traceId"] = httpContext.TraceIdentifier,

@@ -27,7 +27,6 @@ public class ConfirmOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, IL
             return result.Error;
         }
 
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} confirmed by {User}.", order.OrderNumber, command.ConfirmedBy);

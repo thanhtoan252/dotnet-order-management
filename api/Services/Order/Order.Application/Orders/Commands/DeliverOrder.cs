@@ -27,7 +27,6 @@ public class DeliverOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, IL
             return result.Error;
         }
 
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} marked as delivered by {User}.", order.OrderNumber, command.DeliveredBy);

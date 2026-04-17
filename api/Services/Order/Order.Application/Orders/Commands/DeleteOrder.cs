@@ -54,7 +54,6 @@ public class DeleteOrderHandler(
         }
 
         order.IsDeleted = true;
-        orderRepo.Update(order);
         await uow.SaveChangesAsync(ct);
 
         return Result.Success();

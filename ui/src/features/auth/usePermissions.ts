@@ -1,4 +1,4 @@
-import { useAuth } from './AuthProvider';
+import { useAuth } from './useAuth';
 
 export function usePermissions() {
   const { roles } = useAuth();

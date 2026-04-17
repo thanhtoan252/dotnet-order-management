@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Order.Infrastructure.Data;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
-using Serilog;
 
 namespace Order.Infrastructure.Persistence;
 
-public class UnitOfWork(OrderDbContext db) : IUnitOfWork
+public class UnitOfWork(OrderDbContext db, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
@@ -28,7 +28,7 @@ public class UnitOfWork(OrderDbContext db) : IUnitOfWork
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(ct);
-                Log.Error(ex, "Transaction rolled back due to exception: {Message}", ex.Message);
+                logger.LogError(ex, "Transaction rolled back due to exception: {Message}", ex.Message);
                 throw;
             }
         });
@@ -58,7 +58,7 @@ public class UnitOfWork(OrderDbContext db) : IUnitOfWork
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(ct);
-                Log.Error(ex, "Transaction rolled back due to exception: {Message}", ex.Message);
+                logger.LogError(ex, "Transaction rolled back due to exception: {Message}", ex.Message);
                 throw;
             }
         });

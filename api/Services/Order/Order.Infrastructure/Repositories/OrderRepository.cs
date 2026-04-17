@@ -9,7 +9,7 @@ public class OrderRepository(OrderDbContext db) : IOrderRepository
 {
     public async Task<OrderAggregate?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await db.Orders.AsNoTracking().SingleOrDefaultAsync(o => o.Id == id, ct);
+        return await db.Orders.SingleOrDefaultAsync(o => o.Id == id, ct);
     }
 
     public async Task<OrderAggregate?> GetByIdWithItemsAsync(Guid id, CancellationToken ct = default)

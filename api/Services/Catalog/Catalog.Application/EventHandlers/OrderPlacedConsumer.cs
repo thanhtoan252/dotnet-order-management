@@ -47,7 +47,6 @@ public class OrderPlacedConsumer(
         {
             var product = productMap[item.ProductId];
             product.DeductStock(item.Quantity);
-            productRepo.Update(product);
             reservedItems.Add(new ReservedItem(
                 product.Id,
                 product.Name,
