@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Modal } from '../../../components/Modal';
+import { FormField, inputCls } from '../../../components/FormField';
 import type { CreateOrderRequest } from '../types';
 import type { Product } from '../../product-management/types';
 
@@ -11,21 +12,10 @@ interface Props {
   onSubmit: (form: CreateOrderRequest) => Promise<string | null>;
 }
 
-const inputCls =
-  'w-full px-3 py-2 text-sm text-slate-900 bg-white border border-slate-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-400 transition-shadow';
-
-const FormField = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    {children}
-  </div>
-);
-
 const emptyForm = (): CreateOrderRequest => ({
   customerId: crypto.randomUUID(),
   shippingAddress: { street: '', city: '', province: '', zipCode: '' },
-  lines: [{ productId: '', quantity: 1 }],
+  lines: [{ productId: '', quantity: 1, productName: '', unitPrice: 0, currency: 'USD' }],
 });
 
 export const CreateOrderModal = ({ products, loading, onClose, onSubmit }: Props) => {
@@ -77,7 +67,19 @@ export const CreateOrderModal = ({ products, loading, onClose, onSubmit }: Props
           <select
             className={inputCls}
             value={form.lines[0].productId}
-            onChange={e => setForm(f => ({ ...f, lines: [{ ...f.lines[0], productId: e.target.value }] }))}
+            onChange={e => {
+              const selected = products.find(p => p.id === e.target.value);
+              setForm(f => ({
+                ...f,
+                lines: [{
+                  ...f.lines[0],
+                  productId: e.target.value,
+                  productName: selected?.name ?? '',
+                  unitPrice: selected?.price ?? 0,
+                  currency: selected?.currency ?? 'USD',
+                }],
+              }));
+            }}
           >
             <option value="">-- Select product --</option>
             {products.map(p => (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Modal } from '../../../components/Modal';
+import { inputCls } from '../../../components/FormField';
 
 interface Props {
   onClose: () => void;
@@ -24,7 +25,7 @@ export const CancelOrderModal = ({ onClose, onConfirm }: Props) => {
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Reason</label>
           <input
-            className="w-full px-3 py-2 text-sm text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-400 transition-shadow"
+            className={inputCls}
             placeholder="Reason for cancellation"
             value={reason}
             onChange={e => setReason(e.target.value)}

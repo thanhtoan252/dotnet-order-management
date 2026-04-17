@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, ShoppingBag, Menu, ChevronLeft, LayoutGrid, User, LogOut } from 'lucide-react';
-import { useAuth } from './features/auth/AuthProvider';
+import { useAuth } from './features/auth/useAuth';
 import { ProductsManager } from './features/product-management/components/ProductsManager';
 import { OrdersManager } from './features/order-management/components/OrdersManager';
 import './App.css';
@@ -32,8 +32,9 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigate = (id: Page) => {
-    window.location.hash = id;
     setMobileOpen(false);
+    // Defer hash update so it's not a direct render-time side effect
+    queueMicrotask(() => { window.location.hash = id; });
   };
   const { username, logout } = useAuth();
 

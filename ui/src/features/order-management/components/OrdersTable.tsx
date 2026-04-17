@@ -13,6 +13,7 @@ interface Props {
   onCancel: (id: string) => void;
   onDelete: (order: Order) => void;
   onLoadMore: () => void;
+  canManage: boolean;
 }
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
@@ -23,7 +24,7 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; dot: string }> = 
   Cancelled: { bg: 'bg-red-100',     text: 'text-red-700',     dot: 'bg-red-400' },
 };
 
-export const OrdersTable = ({ orders, loading, hasMore, onConfirm, onShip, onDeliver, onCancel, onDelete, onLoadMore }: Props) => {
+export const OrdersTable = ({ orders, loading, hasMore, onConfirm, onShip, onDeliver, onCancel, onDelete, onLoadMore, canManage }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (loading && orders.length === 0) {
@@ -52,7 +53,7 @@ export const OrdersTable = ({ orders, loading, hasMore, onConfirm, onShip, onDel
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Items</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+              {canManage && <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -90,37 +91,39 @@ export const OrdersTable = ({ orders, loading, hasMore, onConfirm, onShip, onDel
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {order.currency} {order.totalAmount.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {order.status === 'Pending' && (
-                          <button onClick={() => onConfirm(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer">
-                            <Check className="w-3 h-3" /> Confirm
-                          </button>
-                        )}
-                        {order.status === 'Confirmed' && (
-                          <button onClick={() => onShip(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors cursor-pointer">
-                            <Truck className="w-3 h-3" /> Ship
-                          </button>
-                        )}
-                        {order.status === 'Shipped' && (
-                          <button onClick={() => onDeliver(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors cursor-pointer">
-                            <PackageCheck className="w-3 h-3" /> Deliver
-                          </button>
-                        )}
-                        {(order.status === 'Pending' || order.status === 'Confirmed') && (
-                          <Tooltip label="Cancel order">
-                            <button onClick={() => onCancel(order.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
-                              <XCircle className="w-4 h-4" />
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {order.status === 'Pending' && (
+                            <button onClick={() => onConfirm(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer">
+                              <Check className="w-3 h-3" /> Confirm
+                            </button>
+                          )}
+                          {order.status === 'Confirmed' && (
+                            <button onClick={() => onShip(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors cursor-pointer">
+                              <Truck className="w-3 h-3" /> Ship
+                            </button>
+                          )}
+                          {order.status === 'Shipped' && (
+                            <button onClick={() => onDeliver(order.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors cursor-pointer">
+                              <PackageCheck className="w-3 h-3" /> Deliver
+                            </button>
+                          )}
+                          {(order.status === 'Pending' || order.status === 'Confirmed') && (
+                            <Tooltip label="Cancel order">
+                              <button onClick={() => onCancel(order.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
+                          )}
+                          <Tooltip label="Delete order">
+                            <button onClick={() => onDelete(order)} className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </Tooltip>
-                        )}
-                        <Tooltip label="Delete order">
-                          <button onClick={() => onDelete(order)} className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
+                    )}
                   </tr>
 
                   {isExpanded && (

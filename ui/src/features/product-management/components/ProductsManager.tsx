@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useProductsManager } from '../hooks/useProductsManager';
+import { usePermissions } from '../../auth/usePermissions';
 import { ProductsTable } from './ProductsTable';
 import { CreateProductModal } from './CreateProductModal';
 import { EditProductModal } from './EditProductModal';
@@ -9,6 +10,7 @@ import type { Product } from '../types';
 
 export const ProductsManager = () => {
   const { products, loading, refresh, createProduct, updateProduct, deleteProduct } = useProductsManager();
+  const { canManageProducts } = usePermissions();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
@@ -38,20 +40,23 @@ export const ProductsManager = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
+          {canManageProducts && (
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </button>
+          )}
         </div>
       </div>
 
-<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <ProductsTable
           products={products}
           loading={loading}
+          canManage={canManageProducts}
           onEdit={setEditTarget}
           onDelete={setDeleteTarget}
         />

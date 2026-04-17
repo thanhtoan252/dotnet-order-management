@@ -1,12 +1,70 @@
-# Order Management — Architecture Showcase
+# Order Management — Microservices Architecture Showcase
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
-![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?logo=keycloak)
+![Keycloak](https://img.shields.io/badge/Keycloak-26.0-4D4D4D?logo=keycloak)
+![Kafka](https://img.shields.io/badge/Kafka-KRaft-231F20?logo=apachekafka)
 
-A showcase project demonstrating production-grade patterns with .NET 10 (ASP.NET Core Minimal API) and React 19 + TypeScript: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, API-first development with OpenAPI 3.1 + NSwag code generation, and fine-grained Keycloak JWT/UMA authorization — all containerized with Docker Compose.
+A showcase project demonstrating production-grade microservices patterns with .NET 10: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, event-driven communication via Apache Kafka, API Gateway (YARP), resilience patterns (retry, circuit breaker, rate limiting), and Keycloak JWT/UMA authorization — all containerized with Docker Compose.
+
+---
+
+## System Architecture
+
+```
+                        ┌──────────────┐
+                        │   React UI   │
+                        │  :3000       │
+                        └──────┬───────┘
+                               │
+                        ┌──────▼───────┐
+                        │ API Gateway  │
+                        │ (YARP) :8080 │
+                        │ Rate Limit   │
+                        │ JWT Auth     │
+                        └──┬───────┬───┘
+                           │       │
+              ┌────────────▼─┐   ┌─▼────────────┐
+              │Order Service │   │Catalog Service│
+              │    :8081     │   │    :8082      │
+              └──────┬───┬───┘   └───┬───┬───────┘
+                     │   │           │   │
+              ┌──────▼┐  │    ┌──────▼┐  │
+              │OrderDb│  │    │CatalogDb  │
+              └───────┘  │    └───────┘  │
+                         │               │
+                    ┌────▼───────────────▼────┐
+                    │     Apache Kafka        │
+                    │     (KRaft mode)        │
+                    └────────────────────────┘
+```
+
+### Event-Driven Communication (Choreography Saga)
+
+```
+1. Client → POST /api/orders → Order Service
+   → Order created (Status=Pending)
+   → Publishes "order.placed" to Kafka (via Outbox)
+
+2. Catalog Service consumes "order.placed"
+   → Stock available → DeductStock → Publishes "catalog.stock-reserved"
+   → Stock insufficient → Publishes "catalog.stock-reservation-failed"
+
+3. Order Service consumes result
+   → "stock-reserved" → Order.Confirm() → Status=Confirmed
+   → "stock-reservation-failed" → Order.Cancel("Insufficient stock")
+```
+
+### Kafka Topics
+
+| Topic | Producer | Consumer | Purpose |
+|---|---|---|---|
+| `order.placed` | Order Service | Catalog Service | Reserve stock |
+| `order.cancelled` | Order Service | Catalog Service | Restore stock |
+| `catalog.stock-reserved` | Catalog Service | Order Service | Auto-confirm order |
+| `catalog.stock-reservation-failed` | Catalog Service | Order Service | Auto-cancel order |
 
 ---
 
@@ -17,145 +75,115 @@ A showcase project demonstrating production-grade patterns with .NET 10 (ASP.NET
 | Technology | Purpose |
 |---|---|
 | .NET 10 / ASP.NET Core Minimal API | Web framework |
-| Entity Framework Core 10 + SQL Server | ORM + database |
+| Entity Framework Core 10 + SQL Server | ORM + database (per service) |
+| Apache Kafka (Confluent.Kafka 2.8) | Event-driven messaging |
+| YARP 2.3 Reverse Proxy | API Gateway |
 | Keycloak 26 (JWT + UMA) | Authentication & authorization |
-| FluentValidation | Request validation |
-| Serilog | Structured logging (console + rolling JSON file) |
+| Microsoft.Extensions.Http.Resilience | Retry + circuit breaker (Polly v8) |
+| ASP.NET Core Rate Limiting | Fixed window, sliding window, concurrency |
+| FluentValidation 12 | Request validation |
+| Serilog 4.2 | Structured logging |
 | Scalar | API reference UI (dev only) |
 | NSwag | OpenAPI → C# DTO code generation |
-| Central Package Management (`Directory.Packages.props`) | Unified NuGet version control |
+| Central Package Management | Unified NuGet version control |
 
 ### Frontend
 
 | Technology | Purpose |
 |---|---|
-| React 19 + TypeScript 5 | UI framework |
+| React 19 + TypeScript 5.9 | UI framework |
 | Vite 8 | Build tool / dev server |
 | Tailwind CSS 4 | Styling |
-| Axios | HTTP client |
-| keycloak-js | Keycloak SSO integration |
-| Lucide React | Icons |
+| Lucide React | Icon library |
 | Sonner | Toast notifications |
 
 ### Infrastructure
 
-| Service | Image |
-|---|---|
-| SQL Server | `mcr.microsoft.com/azure-sql-edge:latest` |
-| Keycloak | `quay.io/keycloak/keycloak:26.2` |
-| Keycloak DB | `postgres:16-alpine` |
-
----
-
-## Architecture
-
-| Layer | Project | Responsibility |
+| Service | Image | Port |
 |---|---|---|
-| **Domain** | `OrderManagement.Domain` | Pure C# — `Order` and `Product` aggregates, `Money`/`Address` value objects, `Result<T>`/`Error` types, `DomainErrors`, repository interfaces |
-| **Application** | `OrderManagement.Application` | CQRS handlers, `IDispatcher`, OpenAPI contracts, generated DTOs, mappers, `IUnitOfWork`. No EF Core dependency |
-| **Infrastructure** | `OrderManagement.Infrastructure` | `OrderDbContext`, EF configurations, repository implementations, `UnitOfWork`, `DbSeeder` |
-| **Api** | `OrderManagement.Api` | Minimal API endpoints, Keycloak JWT/UMA auth, `GlobalExceptionHandler`, Serilog setup, FluentValidation |
-
-### Project Structure
-
-```
-order-management/
-├── api/
-│   ├── Directory.Packages.props           # Central NuGet version management
-│   ├── OrderManagement.slnx               # Solution file
-│   ├── OrderManagement.Domain/
-│   │   ├── Entities/          # Order, Product, OrderItem, AggregateRoot, BaseEntity
-│   │   ├── ValueObjects/      # Money, Address
-│   │   ├── Events/            # Domain events (OrderPlaced, Confirmed, Shipped, ...)
-│   │   ├── Common/            # Result<T>, Error, DomainErrors, IDomainEvent
-│   │   └── Repositories/      # IOrderRepository, IProductRepository
-│   ├── OrderManagement.Application/
-│   │   ├── Common/
-│   │   │   ├── Dispatching/   # IDispatcher, Dispatcher
-│   │   │   ├── Helpers/       # EnumMapper
-│   │   │   └── Interfaces/    # ICommand, ICommandHandler, IQuery, IQueryHandler, IUnitOfWork
-│   │   ├── DependencyInjection.cs         # Handler registrations
-│   │   ├── Orders/
-│   │   │   ├── Commands/      # PlaceOrder, ConfirmOrder, ShipOrder, DeliverOrder, CancelOrder, DeleteOrder
-│   │   │   │   └── OrderCommandsGenerated.g.cs   # NSwag-generated request/response DTOs
-│   │   │   ├── Contracts/                 # OpenAPI 3.1 schema files (source of truth)
-│   │   │   │   ├── orders-management.yaml
-│   │   │   │   └── order-query.yaml
-│   │   │   ├── Queries/       # GetAllOrders, GetOrderById, GetCustomerOrders
-│   │   │   │   └── OrderQueriesGenerated.g.cs    # NSwag-generated query DTOs
-│   │   │   └── Mappers/       # OrderMapper (Domain → DTO)
-│   │   └── Products/
-│   │       ├── Commands/      # CreateProduct, UpdateProduct, DeleteProduct
-│   │       │   └── ProductCommandsGenerated.g.cs # NSwag-generated request/response DTOs
-│   │       ├── Contracts/                 # OpenAPI 3.1 schema files (source of truth)
-│   │       │   ├── products-management.yaml
-│   │       │   └── product-query.yaml
-│   │       ├── Queries/       # GetAllProducts
-│   │       │   └── ProductQueriesGenerated.g.cs  # NSwag-generated query DTOs
-│   │       └── Mappers/       # ProductMapper (Domain → DTO)
-│   ├── OrderManagement.Infrastructure/
-│   │   ├── Data/
-│   │   │   ├── Configurations/    # EF entity configurations
-│   │   │   ├── Migrations/        # EF migrations
-│   │   │   └── OrderDbContext.cs
-│   │   ├── DependencyInjection.cs         # Infrastructure service registrations
-│   │   ├── Persistence/           # UnitOfWork
-│   │   └── Repositories/          # OrderRepository, ProductRepository
-│   └── OrderManagement.Api/
-│       ├── Authorization/         # KeycloakAuthorizationHandler
-│       ├── Endpoints/             # OrderEndpoints, ProductEndpoints
-│       ├── Extensions/            # ServiceExtensions, WebApplicationExtensions, ResultExtensions
-│       ├── Middleware/            # GlobalExceptionHandler
-│       └── Validators/            # FluentValidation validators
-├── ui/
-│   └── src/
-│       ├── features/
-│       │   ├── auth/              # Keycloak AuthProvider
-│       │   ├── order-management/  # Orders CRUD + state transitions
-│       │   └── product-management/# Products CRUD
-│       ├── lib/
-│       │   ├── api.ts             # Axios base client
-│       │   └── keycloak.ts        # Keycloak instance
-│       └── components/            # Shared UI components
-├── keycloak/                      # Realm import config
-└── docker-compose/
-    ├── docker-compose.yml
-    └── .env
-```
+| Order DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1433 |
+| Catalog DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1434 |
+| Kafka (KRaft) | `confluentinc/cp-kafka:7.9.0` | 29092 |
+| Kafka UI | `provectuslabs/kafka-ui:latest` | 9090 |
+| Keycloak | `quay.io/keycloak/keycloak:26.0` | 8180 |
+| Keycloak DB | `postgres:16-alpine` | internal |
 
 ---
 
-## CQRS Pattern
+## Project Structure
 
-The Application layer uses a lightweight **CQRS** (Command Query Responsibility Segregation) implementation without an external library.
+```
+api/
+├── Directory.Packages.props              # Central NuGet version management
+├── OrderManagement.slnx                  # Solution file
+│
+├── Shared/
+│   ├── Shared.Core/                      # Domain building blocks
+│   │   ├── Domain/                       # BaseEntity, AggregateRoot, Result<T>, Error, IDomainEvent
+│   │   ├── ValueObjects/                 # Money, Address
+│   │   └── CQRS/                         # ICommand, IQuery, IDispatcher, Dispatcher, IUnitOfWork
+│   ├── Shared.Contracts/                 # Integration event schemas
+│   │   └── IntegrationEvents/            # OrderPlaced, StockReserved, etc.
+│   └── Shared.Messaging/                 # Kafka infrastructure
+│       ├── Abstractions/                 # IEventBus, IEventConsumer<T>
+│       ├── Kafka/                        # KafkaProducer, KafkaConsumerHost, KafkaOptions
+│       ├── Outbox/                       # OutboxMessage, OutboxProcessor, OutboxEventBus
+│       └── Resilience/                   # HttpResilienceExtensions
+│
+├── Services/
+│   ├── Order/
+│   │   ├── Order.Domain/                 # OrderAggregate, OrderItem, OrderStatus, domain events
+│   │   ├── Order.Application/            # CQRS handlers, Kafka consumers, OpenAPI contracts
+│   │   ├── Order.Infrastructure/         # OrderDbContext, repositories, Kafka registration
+│   │   ├── Order.Api/                    # Minimal API endpoints, auth, validators
+│   │   └── Order.MigrationRunner/        # Standalone console app — applies EF Core migrations in Docker
+│   └── Catalog/
+│       ├── Catalog.Domain/               # Product aggregate, stock management
+│       ├── Catalog.Application/          # CQRS handlers, Kafka consumers, OpenAPI contracts
+│       ├── Catalog.Infrastructure/       # CatalogDbContext, repositories, Kafka registration
+│       ├── Catalog.Api/                  # Minimal API endpoints, auth, validators
+│       └── Catalog.MigrationRunner/      # Standalone console app — applies EF Core migrations in Docker
+│
+└── Gateway/
+    └── ApiGateway/                       # YARP reverse proxy, rate limiting, JWT forwarding
 
-### Core Abstractions
+docker-compose/
+├── docker-compose.yml
+├── keycloak/
+│   └── realm-import.json                 # Auto-imported on first startup
+└── .env
 
-```csharp
-// A command that returns TResponse
-public interface ICommand<TResponse>;
-
-// Handles a specific command
-public interface ICommandHandler<in TCommand, TResponse>
-    where TCommand : ICommand<TResponse>
-{
-    Task<TResponse> HandleAsync(TCommand command, CancellationToken ct = default);
-}
-
-// A query that returns TResponse
-public interface IQuery<TResponse>;
-
-// Handles a specific query
-public interface IQueryHandler<in TQuery, TResponse>
-    where TQuery : IQuery<TResponse>
-{
-    Task<TResponse> HandleAsync(TQuery query, CancellationToken ct = default);
-}
+ui/                                       # React 19 frontend
+├── src/
+│   ├── features/
+│   │   ├── auth/                         # Keycloak login, role-based access
+│   │   ├── order-management/             # Order CRUD, state machine actions
+│   │   └── product-management/           # Product CRUD
+│   ├── components/                       # Shared UI (Modal, ErrorBoundary, Tooltip)
+│   └── lib/api/                          # REST client, error handling
+├── Dockerfile                            # Multi-stage Node → nginx
+├── nginx.conf                            # SPA fallback + API proxy
+└── vite.config.ts
 ```
 
-### Dispatcher
+**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
 
-`IDispatcher` is the single entry point used by endpoints to dispatch commands and queries. It resolves the correct handler from DI at runtime using reflection:
+### Clean Architecture (per service)
+
+| Layer | Responsibility |
+|---|---|
+| **Domain** | Aggregates, value objects, domain events, repository interfaces. Pure C# — no framework dependencies |
+| **Application** | CQRS command/query handlers, Kafka event consumers, OpenAPI contracts, NSwag-generated DTOs, mappers |
+| **Infrastructure** | EF Core DbContext, repository implementations, UnitOfWork, Outbox store, Kafka DI registration |
+| **Api** | Minimal API endpoints, Keycloak auth, FluentValidation, exception handling, Serilog |
+
+---
+
+## Key Design Patterns
+
+### CQRS (Command Query Responsibility Segregation)
+
+Lightweight implementation without MediatR. `IDispatcher` resolves the correct handler from DI at runtime:
 
 ```csharp
 public interface IDispatcher
@@ -163,104 +191,26 @@ public interface IDispatcher
     Task<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken ct = default);
     Task<TResponse> QueryAsync<TResponse>(IQuery<TResponse> query, CancellationToken ct = default);
 }
-```
 
-### Example — Placing an Order
-
-```csharp
-// Command definition (Application layer)
-public record PlaceOrderCommand(PlaceOrderRequest Request, string PlacedBy)
-    : ICommand<Result<OrderResponse>>;
-
-// Endpoint (Api layer)
+// Endpoint usage
 var result = await dispatcher.SendAsync(new PlaceOrderCommand(request, username), ct);
 ```
 
-### Handlers Registered
+### Outbox Pattern (Transactional Messaging)
 
-| Type | Handler |
-|---|---|
-| `PlaceOrderCommand` | `PlaceOrderHandler` |
-| `ConfirmOrderCommand` | `ConfirmOrderHandler` |
-| `ShipOrderCommand` | `ShipOrderHandler` |
-| `DeliverOrderCommand` | `DeliverOrderHandler` |
-| `CancelOrderCommand` | `CancelOrderHandler` |
-| `DeleteOrderCommand` | `DeleteOrderHandler` |
-| `GetAllOrdersQuery` | `GetAllOrdersHandler` |
-| `GetOrderByIdQuery` | `GetOrderByIdHandler` |
-| `GetCustomerOrdersQuery` | `GetCustomerOrdersHandler` |
-| `CreateProductCommand` | `CreateProductHandler` |
-| `UpdateProductCommand` | `UpdateProductHandler` |
-| `DeleteProductCommand` | `DeleteProductHandler` |
-| `GetAllProductsQuery` | `GetAllProductsHandler` |
+Domain changes and outbox messages are saved in the same DB transaction. A background `OutboxProcessor` polls and publishes to Kafka, ensuring at-least-once delivery without distributed transactions.
 
----
+### Idempotent Consumers
 
-## API-First Design
+Each Kafka consumer checks a `ProcessedMessages` table before handling. Duplicate events are skipped automatically.
 
-The Application layer owns **OpenAPI 3.1 YAML contracts** as the single source of truth for all request/response types. DTOs are never written by hand — they are generated from the schema at build time.
+### Dead-Letter Topics
 
-### OpenAPI Contracts
-
-| File | Operations |
-|---|---|
-| `orders-management.yaml` | PlaceOrder, ConfirmOrder, ShipOrder, DeliverOrder, CancelOrder, DeleteOrder |
-| `order-query.yaml` | GetAllOrders (paginated), GetOrder, GetCustomerOrders (paginated) |
-| `products-management.yaml` | CreateProduct, UpdateProduct, DeleteProduct |
-| `product-query.yaml` | GetProducts (paginated) |
-
-### DTO Code Generation (NSwag)
-
-Each contract is referenced in `OrderManagement.Application.csproj` as an `<OpenApiReference>`. On every build, NSwag generates the corresponding `.g.cs` file:
-
-```xml
-<OpenApiReference Include="Orders/Contracts/orders-management.yaml"
-                  Namespace="OrderManagement.Application.Orders.Commands"
-                  OutputPath="Orders/Commands/OrderCommandsGenerated.g.cs"
-                  CodeGenerator="NSwagCSharp">
-  <Options>
-    /GenerateClientClasses:false
-    /GenerateClientInterfaces:false
-    /GenerateDtoTypes:true
-    /JsonLibrary:SystemTextJson
-    /GenerateDefaultValues:true
-    /GenerateNullableReferenceTypes:true
-    /UseBaseUrl:false
-    /DateType:System.DateTimeOffset
-    /DateTimeType:System.DateTimeOffset
-    /ArrayType:System.Collections.Generic.ICollection
-    /ArrayInstanceType:System.Collections.Generic.List
-  </Options>
-</OpenApiReference>
-```
-
-Generated files follow the `*.g.cs` naming convention and are excluded from manual editing. Any change to the API contract is propagated automatically on the next build.
-
----
-
-## Central Package Management
-
-All NuGet package versions are declared once in `api/Directory.Packages.props`. Individual `.csproj` files reference packages without version numbers, ensuring every project in the solution uses consistent dependency versions.
-
-```xml
-<!-- Directory.Packages.props -->
-<PropertyGroup>
-  <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-</PropertyGroup>
-<ItemGroup>
-  <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-  <PackageVersion Include="NSwag.ApiDescription.Client" Version="14.6.3" />
-  <!-- ... all other packages -->
-</ItemGroup>
-```
-
----
-
-## Key Design Patterns
+Failed messages are retried 3 times with exponential backoff. After all retries are exhausted, the message is published to a `dlq.<topic>` dead-letter topic for inspection.
 
 ### Result Pattern
 
-All handlers return `Result<T>` or `Result` — never throw for domain errors. Errors implicitly convert to `Result<T>`. Endpoints map failures via `ResultExtensions.ToProblem()`:
+All handlers return `Result<T>` — never throw for domain errors. Endpoints map failures via `ResultExtensions.ToProblem()`:
 
 - `*.NotFound` → 404
 - `*.InvalidState` / `*.InsufficientStock` → 409
@@ -270,30 +220,80 @@ All handlers return `Result<T>` or `Result` — never throw for domain errors. E
 
 ```
 Pending → Confirmed → Shipped → Delivered
-   └─────────────────────────→ Cancelled  (blocked from Shipped/Delivered/Cancelled)
+   └──────────────────────────→ Cancelled  (blocked from Shipped/Delivered/Cancelled)
 ```
 
-State transitions are enforced inside the `Order` aggregate and return `Result` failures on invalid transitions. `GlobalExceptionHandler` maps `DbUpdateConcurrencyException` → HTTP 409.
+State transitions are enforced inside the `OrderAggregate`. Stock reservation and confirmation are handled asynchronously via the Kafka saga.
 
-### Stock Management
+### API-First Design
 
-`Order.AddItem()` calls `product.DeductStock()` inline — stock is reduced at order-creation time. `CancelOrderHandler` calls `product.RestoreStock()` for each item before cancelling. Both operations run inside `UnitOfWork.ExecuteInTransactionAsync` with EF retry strategy.
+OpenAPI 3.1 YAML contracts are the single source of truth for request/response types. DTOs are generated by NSwag at build time — never written by hand.
 
-### Authentication & Authorization
+---
 
-JWT Bearer tokens validated against Keycloak. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), with results cached for 30 seconds per user × permission. Supported policies:
+## Frontend
+
+The React 19 SPA provides a responsive dashboard for managing orders and products. Key design choices:
+
+- **Authentication** — Direct Keycloak login form with JWT stored in localStorage. Bearer tokens are attached to every API request. Role-based UI guards hide actions the user lacks permissions for.
+- **Navigation** — Hash-based routing (`#products`, `#orders`) without a router library
+- **State management** — React Context + component-level state (no external library)
+- **API layer** — Custom fetch-based REST client with ProblemDetails error handling and 30s timeout
+- **UI** — Responsive sidebar layout (collapsible on desktop, hamburger on mobile), modal-based forms for CRUD operations, color-coded status badges, and toast notifications via Sonner
+
+### Features
+
+| Feature | Description |
+|---|---|
+| **Product Management** | List (paginated), create, edit, and delete products (name, SKU, price, currency, stock quantity, description) |
+| **Order Management** | List (paginated), place order, confirm → ship → deliver lifecycle, cancel with reason, soft-delete |
+| **Real-time Status** | Status badges reflect async saga results (Pending → Confirmed / Cancelled) |
+| **Permission-aware UI** | Action buttons are shown/hidden based on the authenticated user's Keycloak roles |
+
+---
+
+## Resilience Patterns
+
+### API Gateway — Rate Limiting
+
+| Policy | Limit | Window |
+|---|---|---|
+| Fixed window | 100 requests | 1 minute |
+| Sliding window | 1000 requests | 1 hour |
+| Concurrency | 50 concurrent | — |
+| Global (per IP) | 100 requests | 1 minute |
+
+### Kafka Consumer — Retry + Dead-Letter
+
+- 3 retry attempts with exponential backoff (1s → 2s → 4s)
+- Failed messages moved to `dlq.<topic>` dead-letter topic
+- Configurable via `KafkaOptions`
+
+### HTTP Client — Retry + Circuit Breaker
+
+For any synchronous inter-service calls (via `Shared.Messaging.Resilience.HttpResilienceExtensions`):
+
+- **Retry:** 3 attempts, exponential backoff with jitter
+- **Circuit breaker:** breaks after 50% failure rate (10s window), stays open 30s
+- **Timeouts:** 10s per attempt, 30s total
+
+---
+
+## Authentication & Authorization
+
+JWT Bearer tokens validated against Keycloak at the API Gateway level and forwarded to downstream services. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), cached for 30 seconds.
 
 | Policy | Resource |
 |---|---|
 | `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order Resource |
 | `product:create`, `product:update`, `product:delete` | Product Resource |
 
-### EF Core Behaviors
+Keycloak realm (`order-management`) is auto-imported from `docker-compose/keycloak/realm-import.json` on first startup. Pre-configured users:
 
-- **Soft deletes**: global query filters exclude `IsDeleted = true` records automatically
-- **`UpdatedAt` stamping**: auto-set on all modified `BaseEntity` entries in `SaveChangesAsync`
-- **Domain events**: collected before save, dispatched after save succeeds (fire-and-forget via Serilog)
-- **Concurrency tokens**: `DbUpdateConcurrencyException` → HTTP 409
+| User | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | Admin |
+| `user` | `user123` | Standard user |
 
 ---
 
@@ -307,85 +307,48 @@ JWT Bearer tokens validated against Keycloak. Fine-grained permissions use Keycl
 
 ### Environment Setup
 
-The project uses two `.env` files — one for Docker Compose services and one for the UI dev server.
-
 #### 1. `docker-compose/.env`
 
-Create `docker-compose/.env` with the following values:
+Create `docker-compose/.env`:
 
 ```env
 # ─── SQL Server ───────────────────────────────────────────────────────────────
 SA_PASSWORD=YourStr0ng!Pass
 
-# ─── Connection Strings ───────────────────────────────────────────────────────
-ConnectionStrings__DefaultConnection=Server=db,1433;Database=OrderManagement;User Id=sa;Password=YourStr0ng!Pass;TrustServerCertificate=True
-
 # ─── Keycloak ─────────────────────────────────────────────────────────────────
-KC_DB_PASSWORD=keycloak
-KC_ADMIN=admin
-KC_ADMIN_PASSWORD=admin
-KC_HOSTNAME=localhost
-KC_HTTP_PORT=8180
+KEYCLOAK_DB_PASSWORD=keycloak
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
 
-# ─── Keycloak App Settings ────────────────────────────────────────────────────
-Keycloak__Authority=http://localhost:8180/realms/order-management
-Keycloak__MetadataAddress=http://keycloak:8180/realms/order-management/.well-known/openid-configuration
-Keycloak__TokenEndpoint=http://keycloak:8180/realms/order-management/protocol/openid-connect/token
-Keycloak__Audience=order-api
-Keycloak__ClientId=order-api
-Keycloak__ClientSecret=order-api-secret
-
-ASPNETCORE_ENVIRONMENT=Development
+# ─── ASP.NET Core ────────────────────────────────────────────────────────────
+ASPNETCORE_ENVIRONMENT=Docker-Compose
 ```
-
-| Variable | Description |
-|---|---|
-| `SA_PASSWORD` | SQL Server SA password — must match the password in `ConnectionStrings__DefaultConnection` |
-| `ConnectionStrings__DefaultConnection` | Connection string to the SQL Server container |
-| `KC_DB_PASSWORD` | PostgreSQL password for the Keycloak database |
-| `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Keycloak admin credentials |
-| `KC_HOSTNAME` | Public hostname of Keycloak (used for redirect URIs) |
-| `KC_HTTP_PORT` | Keycloak HTTP port |
-| `Keycloak__Authority` | Issuer URL for JWT validation (resolved from the browser/client side) |
-| `Keycloak__MetadataAddress` | OpenID Connect discovery endpoint (resolved from inside the API container using the internal hostname `keycloak`) |
-| `Keycloak__TokenEndpoint` | Token endpoint (resolved from inside the API container using the internal hostname `keycloak`) |
-| `Keycloak__Audience` | Expected `aud` claim in the JWT |
-| `Keycloak__ClientId` | Client ID used for UMA permission checks |
-| `Keycloak__ClientSecret` | Client secret used for UMA permission checks |
-| `ASPNETCORE_ENVIRONMENT` | ASP.NET Core environment (`Development` / `Production`) |
 
 #### 2. `ui/.env.local`
 
-Create `ui/.env.local` for the UI dev server:
+Create `ui/.env.local`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-| Variable | Description |
-|---|---|
-| `VITE_API_BASE_URL` | API base URL used by the Axios client in the UI |
-
----
-
 ### Run with Docker Compose (full stack)
 
 ```bash
-# Create the .env file first (see Environment Setup above)
 cd docker-compose
-
-# Start all services (Keycloak, SQL Server, API, UI)
 docker compose up --build
 ```
+
+**Startup order:** DB → MigrationRunner (waits for DB healthy) → API service (waits for migration success + Kafka healthy + Keycloak healthy) → Gateway (waits for APIs started) → UI (waits for Gateway).
 
 | Service | URL |
 |---|---|
 | UI | http://localhost:3000 |
-| API | http://localhost:8080 |
-| API Reference (Scalar) | http://localhost:8080/scalar/v1 |
+| API Gateway | http://localhost:8080 |
+| Order Service | http://localhost:8081 |
+| Catalog Service | http://localhost:8082 |
+| Kafka UI | http://localhost:9090 |
 | Keycloak Admin | http://localhost:8180 |
-
-Default Keycloak admin credentials: `admin` / `admin`
 
 ### Run locally (development)
 
@@ -393,16 +356,21 @@ Default Keycloak admin credentials: `admin` / `admin`
 
 ```bash
 cd docker-compose
-SA_PASSWORD=YourStrong@Password docker compose up db keycloak keycloak-db
+docker compose up order-db catalog-db kafka kafka-ui keycloak keycloak-db
 ```
 
-**2. Run the API:**
+**2. Run the services:**
 
 ```bash
-dotnet run --project api/OrderManagement.Api
-```
+# Terminal 1 — Order Service
+dotnet run --project api/Services/Order/Order.Api
 
-The API runs on `http://localhost:8080`. Migrations are applied automatically on startup when running in the `Development` environment.
+# Terminal 2 — Catalog Service
+dotnet run --project api/Services/Catalog/Catalog.Api
+
+# Terminal 3 — API Gateway
+dotnet run --project api/Gateway/ApiGateway
+```
 
 **3. Run the UI:**
 
@@ -412,34 +380,42 @@ npm install
 npm run dev
 ```
 
-The UI dev server runs on `http://localhost:5173` and connects to the API at `http://localhost:8080/api`.
-
 ---
 
 ## API Endpoints
 
+All endpoints are accessed through the API Gateway at `http://localhost:8080`.
+
+Scalar API docs available at `/scalar/v1` on each service in Development mode.
+
 ### Orders
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/orders` | List all orders (paginated) |
-| `GET` | `/api/orders/{id}` | Get order by ID |
-| `GET` | `/api/orders/customer/{customerId}` | List orders for a customer (paginated) |
-| `POST` | `/api/orders` | Place a new order |
-| `POST` | `/api/orders/{id}/confirm` | Confirm order (`order:confirm`) |
-| `POST` | `/api/orders/{id}/ship` | Mark order as shipped (`order:ship`) |
-| `POST` | `/api/orders/{id}/deliver` | Mark order as delivered (`order:deliver`) |
-| `POST` | `/api/orders/{id}/cancel` | Cancel order |
-| `DELETE` | `/api/orders/{id}` | Soft-delete order, restores stock if Pending (`order:delete`) |
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/orders` | List all orders (paginated) | — |
+| `GET` | `/api/orders/{id}` | Get order by ID | — |
+| `GET` | `/api/orders/customer/{customerId}` | List orders for a customer | — |
+| `POST` | `/api/orders` | Place a new order | Bearer |
+| `POST` | `/api/orders/{id}/confirm` | Confirm order | `order:confirm` |
+| `POST` | `/api/orders/{id}/ship` | Mark as shipped | `order:ship` |
+| `POST` | `/api/orders/{id}/deliver` | Mark as delivered | `order:deliver` |
+| `POST` | `/api/orders/{id}/cancel` | Cancel order | Bearer |
+| `DELETE` | `/api/orders/{id}` | Soft-delete order | `order:delete` |
 
 ### Products
 
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/products` | List products (paginated) | — |
+| `POST` | `/api/products` | Create product | `product:create` |
+| `PUT` | `/api/products/{id}` | Update product | `product:update` |
+| `DELETE` | `/api/products/{id}` | Soft-delete product | `product:delete` |
+
+### Internal (no auth, not exposed through Gateway to external clients)
+
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/products` | List products (paginated) |
-| `POST` | `/api/products` | Create product (`product:create`) |
-| `PUT` | `/api/products/{id}` | Update product name, price, or stock (`product:update`) |
-| `DELETE` | `/api/products/{id}` | Soft-delete product (`product:delete`) |
+| `POST` | `/internal/products/stock-check` | Check stock availability |
 
 ---
 
@@ -448,22 +424,18 @@ The UI dev server runs on `http://localhost:5173` and connects to the API at `ht
 ### Backend (.NET)
 
 ```bash
-# Build solution (also triggers NSwag DTO generation)
+# Build entire solution (triggers NSwag DTO generation)
 dotnet build api/OrderManagement.slnx
 
-# Add EF Core migration
+# Add EF Core migration (Order Service)
 dotnet ef migrations add <MigrationName> \
-  --project api/OrderManagement.Infrastructure \
-  --startup-project api/OrderManagement.Api
+  --project api/Services/Order/Order.Infrastructure \
+  --startup-project api/Services/Order/Order.Api
 
-# Apply migrations manually
-dotnet ef database update \
-  --project api/OrderManagement.Infrastructure \
-  --startup-project api/OrderManagement.Api
-
-# Publish release build
-dotnet publish api/OrderManagement.Api/OrderManagement.Api.csproj \
-  -c Release -o /app/publish
+# Add EF Core migration (Catalog Service)
+dotnet ef migrations add <MigrationName> \
+  --project api/Services/Catalog/Catalog.Infrastructure \
+  --startup-project api/Services/Catalog/Catalog.Api
 ```
 
 ### Frontend
@@ -471,16 +443,18 @@ dotnet publish api/OrderManagement.Api/OrderManagement.Api.csproj \
 ```bash
 cd ui
 npm run dev      # dev server with hot reload
-npm run build    # production build (tsc + vite)
+npm run build    # production build
 npm run lint     # ESLint
 ```
 
 ---
 
-## Health Check
+## Health Checks
 
-```
-GET /health
-```
+Each service exposes a `/health` endpoint. The API Gateway proxies them:
 
-Checks database connectivity via EF Core health check.
+| Endpoint | Target |
+|---|---|
+| `GET /health` | API Gateway self |
+| `GET /services/order/health` | Order Service |
+| `GET /services/catalog/health` | Catalog Service |

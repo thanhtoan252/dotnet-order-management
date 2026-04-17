@@ -1,13 +1,30 @@
 <Solution>
     <Configurations>
-        <Platform Name="Any CPU"/>
-        <Platform Name="x64"/>
-        <Platform Name="x86"/>
+        <Platform Name="Any CPU" />
+        <Platform Name="x64" />
+        <Platform Name="x86" />
     </Configurations>
-    <Folder Name="/api/">
-        <Project Path="OrderManagement.Api/OrderManagement.Api.csproj"/>
-        <Project Path="OrderManagement.Application/OrderManagement.Application.csproj"/>
-        <Project Path="OrderManagement.Domain/OrderManagement.Domain.csproj"/>
-        <Project Path="OrderManagement.Infrastructure/OrderManagement.Infrastructure.csproj"/>
+    <Folder Name="/Shared/">
+        <Project Path="Shared/Shared.Core/Shared.Core.csproj" />
+        <Project Path="Shared/Shared.Contracts/Shared.Contracts.csproj" />
+        <Project Path="Shared/Shared.Messaging/Shared.Messaging.csproj" />
+    </Folder>
+    <Folder Name="/Services/Order/">
+        <Project Path="Services/Order/Order.Domain/Order.Domain.csproj" />
+        <Project Path="Services/Order/Order.Application/Order.Application.csproj" />
+        <Project Path="Services/Order/Order.Infrastructure/Order.Infrastructure.csproj" />
+        <Project Path="Services/Order/Order.Api/Order.Api.csproj" />
+        <Project Path="Services/Order/Order.MigrationRunner/Order.MigrationRunner.csproj" />
+    </Folder>
+    <Folder Name="/Services/" />
+    <Folder Name="/Services/Catalog/">
+        <Project Path="Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
+        <Project Path="Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
+        <Project Path="Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+        <Project Path="Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
+        <Project Path="Services/Catalog/Catalog.MigrationRunner/Catalog.MigrationRunner.csproj" />
+    </Folder>
+    <Folder Name="/Gateway/">
+        <Project Path="Gateway/ApiGateway/ApiGateway.csproj" />
     </Folder>
 </Solution>
