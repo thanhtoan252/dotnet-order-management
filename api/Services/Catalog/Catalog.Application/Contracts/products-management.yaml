@@ -42,7 +42,7 @@ paths:
     put:
       tags: [ Products ]
       operationId: UpdateProduct
-      summary: Update product name, price, or stock
+      summary: Update product name or price
       parameters:
         - name: id
           in: path
@@ -72,7 +72,7 @@ paths:
         "404":
           description: Product not found
         "409":
-          description: Insufficient stock or domain rule violation
+          description: Domain rule violation
           content:
             application/json:
               schema:
@@ -99,7 +99,7 @@ components:
   schemas:
     CreateProductRequest:
       type: object
-      required: [ name, sku, price, currency, stockQuantity ]
+      required: [ name, sku, price, currency ]
       properties:
         name:
           type: string
@@ -114,9 +114,10 @@ components:
           type: string
           maxLength: 3
           default: USD
-        stockQuantity:
-          type: integer
+        initialStockQuantity:
+          type: [ integer, "null" ]
           minimum: 0
+          description: Initial on-hand stock seeded into Inventory when the product is created.
         description:
           type: [ string, "null" ]
           maxLength: 1000
@@ -134,13 +135,10 @@ components:
         currency:
           type: [ string, "null" ]
           maxLength: 3
-        stockQuantity:
-          type: [ integer, "null" ]
-          minimum: 0
 
     ProductResponse:
       type: object
-      required: [ id, name, sku, price, currency, stockQuantity ]
+      required: [ id, name, sku, price, currency ]
       properties:
         id:
           type: string
@@ -156,8 +154,6 @@ components:
           format: decimal
         currency:
           type: string
-        stockQuantity:
-          type: integer
 
     ProblemDetails:
       type: object

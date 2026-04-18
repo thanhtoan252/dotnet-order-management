@@ -10,12 +10,6 @@ interface Props {
   onDelete: (product: Product) => void;
 }
 
-const stockBadgeCls = (qty: number) => {
-  if (qty === 0) return 'bg-red-100 text-red-700';
-  if (qty < 10) return 'bg-amber-100 text-amber-700';
-  return 'bg-emerald-100 text-emerald-700';
-};
-
 export const ProductsTable = ({ products, loading, canManage, onEdit, onDelete }: Props) => {
   if (loading && products.length === 0) {
     return <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>;
@@ -40,7 +34,6 @@ export const ProductsTable = ({ products, loading, canManage, onEdit, onDelete }
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">SKU</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock</th>
               {canManage && <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
@@ -53,11 +46,6 @@ export const ProductsTable = ({ products, loading, canManage, onEdit, onDelete }
                 </td>
                 <td className="px-4 py-3.5 text-slate-700">
                   {p.currency} <span className="font-medium">{p.price.toFixed(2)}</span>
-                </td>
-                <td className="px-4 py-3.5">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${stockBadgeCls(p.stockQuantity)}`}>
-                    {p.stockQuantity} units
-                  </span>
                 </td>
                 {canManage && (
                   <td className="px-4 py-3.5">

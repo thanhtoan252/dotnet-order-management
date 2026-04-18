@@ -15,7 +15,6 @@ internal static class ProductMapper
             Sku = p.SKU,
             Price = p.Price.Amount,
             Currency = p.Price.Currency,
-            StockQuantity = p.StockQuantity,
             Description = p.Description
         };
     }
@@ -29,7 +28,6 @@ internal static class ProductMapper
             Sku = p.SKU,
             Price = p.Price.Amount,
             Currency = p.Price.Currency,
-            StockQuantity = p.StockQuantity,
             Description = p.Description
         };
     }

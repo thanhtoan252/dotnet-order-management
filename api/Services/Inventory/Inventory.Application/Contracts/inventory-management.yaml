@@ -1,0 +1,189 @@
+openapi: "3.1.0"
+
+info:
+  title: Inventory Management API — Commands
+  version: "1.0"
+  description: Write operations (create item, receive stock, adjust quantity)
+
+servers:
+  - url: http://localhost:5073
+    description: Local development
+
+tags:
+  - name: Inventory
+
+paths:
+  /api/inventory:
+    post:
+      tags: [ Inventory ]
+      operationId: CreateInventoryItem
+      summary: Create an inventory item for a product (admin / backfill use)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInventoryItemRequest"
+      responses:
+        "201":
+          description: Inventory item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItemResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "409":
+          description: Inventory item already exists for product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /api/inventory/{productId}/receive:
+    post:
+      tags: [ Inventory ]
+      operationId: ReceiveStock
+      summary: Add quantity to on-hand stock (e.g. goods received)
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiveStockRequest"
+      responses:
+        "200":
+          description: Stock received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItemResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Inventory item not found
+
+  /api/inventory/{productId}/adjust:
+    post:
+      tags: [ Inventory ]
+      operationId: AdjustStock
+      summary: Set on-hand stock to an absolute quantity (admin correction)
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdjustStockRequest"
+      responses:
+        "200":
+          description: Stock adjusted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItemResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Inventory item not found
+        "409":
+          description: Adjustment would violate reserved stock invariant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+components:
+  schemas:
+    CreateInventoryItemRequest:
+      type: object
+      required: [ productId, sku, productName, initialQuantity ]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        sku:
+          type: string
+          maxLength: 50
+        productName:
+          type: string
+          maxLength: 200
+        initialQuantity:
+          type: integer
+          minimum: 0
+
+    ReceiveStockRequest:
+      type: object
+      required: [ quantity ]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    AdjustStockRequest:
+      type: object
+      required: [ onHand ]
+      properties:
+        onHand:
+          type: integer
+          minimum: 0
+        reason:
+          type: [ string, "null" ]
+          maxLength: 500
+
+    InventoryItemResponse:
+      type: object
+      required: [ productId, sku, productName, onHand, reserved, available ]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        productName:
+          type: string
+        onHand:
+          type: integer
+        reserved:
+          type: integer
+        available:
+          type: integer
+
+    ProblemDetails:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        traceId:
+          type: string
+        stackTrace:
+          type: [ string, "null" ]

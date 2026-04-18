@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Package, ShoppingBag, Menu, ChevronLeft, LayoutGrid, User, LogOut } from 'lucide-react';
+import { Package, ShoppingBag, Boxes, Menu, ChevronLeft, LayoutGrid, User, LogOut } from 'lucide-react';
 import { useAuth } from './features/auth/useAuth';
 import { ProductsManager } from './features/product-management/components/ProductsManager';
 import { OrdersManager } from './features/order-management/components/OrdersManager';
+import { InventoryManager } from './features/inventory-management/components/InventoryManager';
 import './App.css';
 
-type Page = 'products' | 'orders';
+type Page = 'products' | 'orders' | 'inventory';
 
-const VALID_PAGES: Page[] = ['products', 'orders'];
+const VALID_PAGES: Page[] = ['products', 'orders', 'inventory'];
 
 const navItems: { id: Page; label: string; icon: React.ElementType; description: string }[] = [
   { id: 'products', label: 'Products', icon: Package, description: 'Manage product catalog' },
   { id: 'orders', label: 'Orders', icon: ShoppingBag, description: 'View and manage orders' },
+  { id: 'inventory', label: 'Inventory', icon: Boxes, description: 'Track on-hand and reserved stock' },
 ];
 
 function getPageFromHash(): Page {
@@ -160,6 +162,7 @@ function App() {
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           {page === 'products' && <ProductsManager />}
           {page === 'orders' && <OrdersManager />}
+          {page === 'inventory' && <InventoryManager />}
         </main>
       </div>
     </div>

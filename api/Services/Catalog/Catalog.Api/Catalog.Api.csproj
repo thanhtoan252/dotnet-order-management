@@ -10,6 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj"/>
         <ProjectReference Include="..\Catalog.Infrastructure\Catalog.Infrastructure.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Shared.Web\Shared.Web.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -16,7 +16,6 @@ export const EditProductModal = ({ product, loading, onClose, onSubmit }: Props)
     name: product.name,
     price: product.price,
     currency: product.currency,
-    stockQuantity: product.stockQuantity,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -74,15 +73,9 @@ export const EditProductModal = ({ product, loading, onClose, onSubmit }: Props)
             />
           </FormField>
         </div>
-        <FormField label="Stock Quantity">
-          <input
-            className={inputCls}
-            type="number"
-            min="0"
-            value={form.stockQuantity ?? ''}
-            onChange={e => setForm(f => ({ ...f, stockQuantity: parseInt(e.target.value) || 0 }))}
-          />
-        </FormField>
+        <p className="text-[11px] text-slate-400">
+          Stock is managed on the Inventory page.
+        </p>
       </div>
       <div className="flex justify-end gap-2 mt-6 pt-5 border-t border-slate-100">
         <button

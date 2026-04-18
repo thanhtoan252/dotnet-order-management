@@ -19,7 +19,6 @@ public static class DependencyInjection
 
         // Product query handlers
         services.AddScoped<IQueryHandler<ProductQry.GetAllProductsQuery, IReadOnlyList<ProductQry.ProductResponse>>, ProductQry.GetAllProductsHandler>();
-        services.AddScoped<IQueryHandler<ProductQry.CheckStockQuery, Shared.Contracts.StockCheckResponse>, ProductQry.CheckStockHandler>();
 
         return services;
     }

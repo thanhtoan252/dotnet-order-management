@@ -4,7 +4,7 @@ export interface Product {
   sku: string;
   price: number;
   currency: string;
-  stockQuantity: number;
+  description?: string;
 }
 
 export interface CreateProductRequest {
@@ -12,7 +12,7 @@ export interface CreateProductRequest {
   sku: string;
   price: number;
   currency: string;
-  stockQuantity: number;
+  initialStockQuantity?: number;
   description?: string;
 }
 
@@ -20,5 +20,4 @@ export interface UpdateProductRequest {
   name?: string;
   price?: number;
   currency?: string;
-  stockQuantity?: number;
 }

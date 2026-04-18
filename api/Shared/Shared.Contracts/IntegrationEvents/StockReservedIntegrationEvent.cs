@@ -8,7 +8,4 @@ public sealed record StockReservedIntegrationEvent(
 
 public sealed record ReservedItem(
     Guid ProductId,
-    string ProductName,
-    decimal UnitPrice,
-    string Currency,
     int Quantity);

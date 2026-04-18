@@ -6,9 +6,6 @@ public static class DomainErrors
 {
     public static class Product
     {
-        public static readonly Error InvalidQuantity =
-            new("Product.InvalidQuantity", "Quantity must be positive.");
-
         public static Error NotFound(Guid id)
         {
             return new Error("Product.NotFound", $"Product {id} not found.");
@@ -22,14 +19,5 @@ public static class DomainErrors
 
         public static readonly Error InvalidPrice =
             new("Product.InvalidPrice", "Price is required.");
-
-        public static readonly Error NegativeStock =
-            new("Product.NegativeStock", "Stock cannot be negative.");
-
-        public static Error InsufficientStock(string name, int available, int requested)
-        {
-            return new Error("Product.InsufficientStock",
-                $"Insufficient stock for '{name}'. Available: {available}, Requested: {requested}.");
-        }
     }
 }
