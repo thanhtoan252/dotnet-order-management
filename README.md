@@ -14,57 +14,82 @@ A showcase project demonstrating production-grade microservices patterns with .N
 ## System Architecture
 
 ```
-                        ┌──────────────┐
-                        │   React UI   │
-                        │  :3000       │
-                        └──────┬───────┘
-                               │
-                        ┌──────▼───────┐
-                        │ API Gateway  │
-                        │ (YARP) :8080 │
-                        │ Rate Limit   │
-                        │ JWT Auth     │
-                        └──┬───────┬───┘
-                           │       │
-              ┌────────────▼─┐   ┌─▼────────────┐
-              │Order Service │   │Catalog Service│
-              │    :8081     │   │    :8082      │
-              └──────┬───┬───┘   └───┬───┬───────┘
-                     │   │           │   │
-              ┌──────▼┐  │    ┌──────▼┐  │
-              │OrderDb│  │    │CatalogDb  │
-              └───────┘  │    └───────┘  │
-                         │               │
-                    ┌────▼───────────────▼────┐
-                    │     Apache Kafka        │
-                    │     (KRaft mode)        │
-                    └────────────────────────┘
+                               ┌──────────────┐
+                               │   React UI   │
+                               │    :3000     │
+                               └──────┬───────┘
+                                      │
+                               ┌──────▼───────┐
+                               │ API Gateway  │
+                               │ (YARP) :8080 │
+                               │ Rate Limit   │
+                               │ JWT Auth     │
+                               └──┬────┬────┬─┘
+                                  │    │    │
+              ┌───────────────────┘    │    └───────────────────┐
+              │                        │                        │
+      ┌───────▼────────┐      ┌────────▼────────┐      ┌────────▼─────────┐
+      │ Order Service  │      │ Catalog Service │      │Inventory Service │
+      │     :8081      │      │     :8082       │      │      :8083       │
+      └───┬────────┬───┘      └───┬─────────┬───┘      └────┬─────────┬───┘
+          │        │              │         │               │         │
+       ┌──▼────┐   │        ┌─────▼─────┐   │        ┌──────▼──────┐  │
+       │OrderDb│   │        │ CatalogDb │   │        │ InventoryDb │  │
+       └───────┘   │        └───────────┘   │        └─────────────┘  │
+                   │                        │                         │
+                   └────────────┬───────────┴─────────────────────────┘
+                                │
+                       ┌────────▼─────────┐
+                       │  Apache Kafka    │
+                       │   (KRaft mode)   │
+                       └──────────────────┘
 ```
+
+Each service owns its own database. Services communicate **only** through Kafka events — no synchronous cross-service HTTP calls.
+
+### Bounded Contexts
+
+| Service | Owns | Does NOT own |
+|---|---|---|
+| **Order** | Order lifecycle, order items (price/name snapshots) | Stock, product catalog |
+| **Catalog** | Product CRUD (name, SKU, price, description) | Stock |
+| **Inventory** | Stock levels (`OnHand`, `Reserved`, `Available`), reservations | Product master data |
+
+`Catalog` publishes product-lifecycle events; `Inventory` consumes them and maintains its own `InventoryItem` projection (name + SKU) so it never calls Catalog synchronously.
 
 ### Event-Driven Communication (Choreography Saga)
 
+Stock reservation on order placement:
+
 ```
 1. Client → POST /api/orders → Order Service
-   → Order created (Status=Pending)
+   → Order created (Status = Pending)
    → Publishes "order.placed" to Kafka (via Outbox)
 
-2. Catalog Service consumes "order.placed"
-   → Stock available → DeductStock → Publishes "catalog.stock-reserved"
-   → Stock insufficient → Publishes "catalog.stock-reservation-failed"
+2. Inventory Service consumes "order.placed"
+   → Sufficient stock → Reserve → Publishes "inventory.stock-reserved"
+   → Insufficient stock → Publishes "inventory.stock-reservation-failed"
 
-3. Order Service consumes result
-   → "stock-reserved" → Order.Confirm() → Status=Confirmed
-   → "stock-reservation-failed" → Order.Cancel("Insufficient stock")
+3. Order Service consumes the result
+   → "stock-reserved"           → Order.Confirm()  → Status = Confirmed
+   → "stock-reservation-failed" → Order.Cancel()   → Status = Cancelled
 ```
+
+Order cancellation triggers `order.cancelled`, which Inventory consumes to restore previously reserved stock.
 
 ### Kafka Topics
 
 | Topic | Producer | Consumer | Purpose |
 |---|---|---|---|
-| `order.placed` | Order Service | Catalog Service | Reserve stock |
-| `order.cancelled` | Order Service | Catalog Service | Restore stock |
-| `catalog.stock-reserved` | Catalog Service | Order Service | Auto-confirm order |
-| `catalog.stock-reservation-failed` | Catalog Service | Order Service | Auto-cancel order |
+| `order.placed` | Order | Inventory | Reserve stock for a newly placed order |
+| `order.cancelled` | Order | Inventory | Restore previously reserved stock |
+| `inventory.stock-reserved` | Inventory | Order | Auto-confirm the order |
+| `inventory.stock-reservation-failed` | Inventory | Order | Auto-cancel the order |
+| `catalog.product-created` | Catalog | Inventory | Seed a new `InventoryItem` projection |
+| `catalog.product-renamed` | Catalog | Inventory | Update projection name/SKU |
+| `catalog.product-deleted` | Catalog | Inventory | Soft-delete the projection |
+
+Canonical list: `api/Shared/Shared.Contracts/Topics.cs`.
 
 ---
 
@@ -103,6 +128,7 @@ A showcase project demonstrating production-grade microservices patterns with .N
 |---|---|---|
 | Order DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1433 |
 | Catalog DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1434 |
+| Inventory DB (SQL Server) | `mcr.microsoft.com/azure-sql-edge:latest` | 1435 |
 | Kafka (KRaft) | `confluentinc/cp-kafka:7.9.0` | 29092 |
 | Kafka UI | `provectuslabs/kafka-ui:latest` | 9090 |
 | Keycloak | `quay.io/keycloak/keycloak:26.0` | 8180 |
@@ -122,8 +148,8 @@ api/
 │   │   ├── Domain/                       # BaseEntity, AggregateRoot, Result<T>, Error, IDomainEvent
 │   │   ├── ValueObjects/                 # Money, Address
 │   │   └── CQRS/                         # ICommand, IQuery, IDispatcher, Dispatcher, IUnitOfWork
-│   ├── Shared.Contracts/                 # Integration event schemas
-│   │   └── IntegrationEvents/            # OrderPlaced, StockReserved, etc.
+│   ├── Shared.Contracts/                 # Integration event schemas + Topics.cs
+│   │   └── IntegrationEvents/            # OrderPlaced, StockReserved, ProductCreated, ...
 │   └── Shared.Messaging/                 # Kafka infrastructure
 │       ├── Abstractions/                 # IEventBus, IEventConsumer<T>
 │       ├── Kafka/                        # KafkaProducer, KafkaConsumerHost, KafkaOptions
@@ -136,13 +162,19 @@ api/
 │   │   ├── Order.Application/            # CQRS handlers, Kafka consumers, OpenAPI contracts
 │   │   ├── Order.Infrastructure/         # OrderDbContext, repositories, Kafka registration
 │   │   ├── Order.Api/                    # Minimal API endpoints, auth, validators
-│   │   └── Order.MigrationRunner/        # Standalone console app — applies EF Core migrations in Docker
-│   └── Catalog/
-│       ├── Catalog.Domain/               # Product aggregate, stock management
-│       ├── Catalog.Application/          # CQRS handlers, Kafka consumers, OpenAPI contracts
-│       ├── Catalog.Infrastructure/       # CatalogDbContext, repositories, Kafka registration
-│       ├── Catalog.Api/                  # Minimal API endpoints, auth, validators
-│       └── Catalog.MigrationRunner/      # Standalone console app — applies EF Core migrations in Docker
+│   │   └── Order.MigrationRunner/        # Standalone console — applies EF Core migrations in Docker
+│   ├── Catalog/
+│   │   ├── Catalog.Domain/               # ProductAggregate (name, SKU, price — no stock)
+│   │   ├── Catalog.Application/          # CQRS handlers, product-lifecycle event publishing
+│   │   ├── Catalog.Infrastructure/       # CatalogDbContext, repositories, Kafka registration
+│   │   ├── Catalog.Api/                  # Minimal API endpoints, auth, validators
+│   │   └── Catalog.MigrationRunner/      # Standalone console — applies EF Core migrations in Docker
+│   └── Inventory/
+│       ├── Inventory.Domain/             # InventoryItem (OnHand, Reserved, Available), stock ops
+│       ├── Inventory.Application/        # CQRS handlers, Kafka consumers for order + catalog events
+│       ├── Inventory.Infrastructure/     # InventoryDbContext, repositories, Kafka registration
+│       ├── Inventory.Api/                # Minimal API endpoints, auth, validators
+│       └── Inventory.MigrationRunner/    # Standalone console — applies EF Core migrations in Docker
 │
 └── Gateway/
     └── ApiGateway/                       # YARP reverse proxy, rate limiting, JWT forwarding
@@ -166,7 +198,7 @@ ui/                                       # React 19 frontend
 └── vite.config.ts
 ```
 
-**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
+**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`, `Inventory.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
 
 ### Clean Architecture (per service)
 
@@ -196,9 +228,11 @@ public interface IDispatcher
 var result = await dispatcher.SendAsync(new PlaceOrderCommand(request, username), ct);
 ```
 
+Commands and queries live alongside their handlers (e.g., `PlaceOrder.cs` contains both `PlaceOrderCommand` and `PlaceOrderHandler`).
+
 ### Outbox Pattern (Transactional Messaging)
 
-Domain changes and outbox messages are saved in the same DB transaction. A background `OutboxProcessor` polls and publishes to Kafka, ensuring at-least-once delivery without distributed transactions.
+Domain changes and outbox messages are saved in the same DB transaction. A background `OutboxProcessor` polls every 2s and publishes to Kafka, ensuring at-least-once delivery without distributed transactions.
 
 ### Idempotent Consumers
 
@@ -206,7 +240,7 @@ Each Kafka consumer checks a `ProcessedMessages` table before handling. Duplicat
 
 ### Dead-Letter Topics
 
-Failed messages are retried 3 times with exponential backoff. After all retries are exhausted, the message is published to a `dlq.<topic>` dead-letter topic for inspection.
+`KafkaConsumerHost<TEvent>` retries 3 times with exponential backoff (1s → 2s → 4s). After all retries are exhausted, the message is published to `dlq.<topic>` for inspection.
 
 ### Result Pattern
 
@@ -223,11 +257,11 @@ Pending → Confirmed → Shipped → Delivered
    └──────────────────────────→ Cancelled  (blocked from Shipped/Delivered/Cancelled)
 ```
 
-State transitions are enforced inside the `OrderAggregate`. Stock reservation and confirmation are handled asynchronously via the Kafka saga.
+State transitions are enforced inside `OrderAggregate`. Stock reservation and confirmation happen asynchronously via the Kafka saga.
 
 ### API-First Design
 
-OpenAPI 3.1 YAML contracts are the single source of truth for request/response types. DTOs are generated by NSwag at build time — never written by hand.
+OpenAPI 3.1 YAML contracts in each service's `Application/Contracts/` are the single source of truth for request/response types. DTOs are generated by NSwag at build time via `<OpenApiReference>` in `.csproj` — never written by hand.
 
 ---
 
@@ -245,7 +279,7 @@ The React 19 SPA provides a responsive dashboard for managing orders and product
 
 | Feature | Description |
 |---|---|
-| **Product Management** | List (paginated), create, edit, and delete products (name, SKU, price, currency, stock quantity, description) |
+| **Product Management** | List (paginated), create, edit, and delete products (name, SKU, price, currency, description) |
 | **Order Management** | List (paginated), place order, confirm → ship → deliver lifecycle, cancel with reason, soft-delete |
 | **Real-time Status** | Status badges reflect async saga results (Pending → Confirmed / Cancelled) |
 | **Permission-aware UI** | Action buttons are shown/hidden based on the authenticated user's Keycloak roles |
@@ -271,7 +305,7 @@ The React 19 SPA provides a responsive dashboard for managing orders and product
 
 ### HTTP Client — Retry + Circuit Breaker
 
-For any synchronous inter-service calls (via `Shared.Messaging.Resilience.HttpResilienceExtensions`):
+For any synchronous outbound HTTP calls (via `Shared.Messaging.Resilience.HttpResilienceExtensions`):
 
 - **Retry:** 3 attempts, exponential backoff with jitter
 - **Circuit breaker:** breaks after 50% failure rate (10s window), stays open 30s
@@ -281,14 +315,15 @@ For any synchronous inter-service calls (via `Shared.Messaging.Resilience.HttpRe
 
 ## Authentication & Authorization
 
-JWT Bearer tokens validated against Keycloak at the API Gateway level and forwarded to downstream services. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), cached for 30 seconds.
+JWT Bearer tokens are validated against Keycloak at the API Gateway and forwarded to downstream services. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), cached for 30 seconds.
 
 | Policy | Resource |
 |---|---|
-| `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order Resource |
-| `product:create`, `product:update`, `product:delete` | Product Resource |
+| `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order |
+| `product:create`, `product:update`, `product:delete` | Product |
+| `inventory:adjust` | Inventory |
 
-Keycloak realm (`order-management`) is auto-imported from `docker-compose/keycloak/realm-import.json` on first startup. Pre-configured users:
+The `order-management` realm is auto-imported from `docker-compose/keycloak/realm-import.json` on first startup. Pre-configured users:
 
 | User | Password | Role |
 |---|---|---|
@@ -309,8 +344,6 @@ Keycloak realm (`order-management`) is auto-imported from `docker-compose/keyclo
 
 #### 1. `docker-compose/.env`
 
-Create `docker-compose/.env`:
-
 ```env
 # ─── SQL Server ───────────────────────────────────────────────────────────────
 SA_PASSWORD=YourStr0ng!Pass
@@ -325,8 +358,6 @@ ASPNETCORE_ENVIRONMENT=Docker-Compose
 ```
 
 #### 2. `ui/.env.local`
-
-Create `ui/.env.local`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api
@@ -347,6 +378,7 @@ docker compose up --build
 | API Gateway | http://localhost:8080 |
 | Order Service | http://localhost:8081 |
 | Catalog Service | http://localhost:8082 |
+| Inventory Service | http://localhost:8083 |
 | Kafka UI | http://localhost:9090 |
 | Keycloak Admin | http://localhost:8180 |
 
@@ -356,7 +388,7 @@ docker compose up --build
 
 ```bash
 cd docker-compose
-docker compose up order-db catalog-db kafka kafka-ui keycloak keycloak-db
+docker compose up order-db catalog-db inventory-db kafka kafka-ui keycloak keycloak-db
 ```
 
 **2. Run the services:**
@@ -368,7 +400,10 @@ dotnet run --project api/Services/Order/Order.Api
 # Terminal 2 — Catalog Service
 dotnet run --project api/Services/Catalog/Catalog.Api
 
-# Terminal 3 — API Gateway
+# Terminal 3 — Inventory Service
+dotnet run --project api/Services/Inventory/Inventory.Api
+
+# Terminal 4 — API Gateway
 dotnet run --project api/Gateway/ApiGateway
 ```
 
@@ -380,21 +415,23 @@ npm install
 npm run dev
 ```
 
+Kafka bootstrap: `localhost:29092` for local dev, `kafka:9092` inside Docker.
+
 ---
 
 ## API Endpoints
 
 All endpoints are accessed through the API Gateway at `http://localhost:8080`.
 
-Scalar API docs available at `/scalar/v1` on each service in Development mode.
+Scalar API docs are available at `/scalar/v1` on each service in Development mode.
 
 ### Orders
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
-| `GET` | `/api/orders` | List all orders (paginated) | — |
-| `GET` | `/api/orders/{id}` | Get order by ID | — |
-| `GET` | `/api/orders/customer/{customerId}` | List orders for a customer | — |
+| `GET` | `/api/orders` | List all orders (paginated) | Bearer |
+| `GET` | `/api/orders/{id}` | Get order by ID | Bearer |
+| `GET` | `/api/orders/customer/{customerId}` | List orders for a customer | Bearer |
 | `POST` | `/api/orders` | Place a new order | Bearer |
 | `POST` | `/api/orders/{id}/confirm` | Confirm order | `order:confirm` |
 | `POST` | `/api/orders/{id}/ship` | Mark as shipped | `order:ship` |
@@ -406,16 +443,26 @@ Scalar API docs available at `/scalar/v1` on each service in Development mode.
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
-| `GET` | `/api/products` | List products (paginated) | — |
+| `GET` | `/api/products` | List products (paginated) | Bearer |
 | `POST` | `/api/products` | Create product | `product:create` |
 | `PUT` | `/api/products/{id}` | Update product | `product:update` |
 | `DELETE` | `/api/products/{id}` | Soft-delete product | `product:delete` |
 
-### Internal (no auth, not exposed through Gateway to external clients)
+### Inventory
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/inventory` | List inventory items (paginated) | Bearer |
+| `GET` | `/api/inventory/{productId}` | Get inventory item for a product | Bearer |
+| `POST` | `/api/inventory` | Create inventory item for a product | `inventory:adjust` |
+| `POST` | `/api/inventory/{productId}/receive` | Add quantity to on-hand stock | `inventory:adjust` |
+| `POST` | `/api/inventory/{productId}/adjust` | Set on-hand stock to an absolute quantity | `inventory:adjust` |
+
+### Internal (not exposed through the Gateway to external clients)
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/internal/products/stock-check` | Check stock availability |
+| `POST` | `/internal/inventory/availability` | Check stock availability |
 
 ---
 
@@ -436,6 +483,11 @@ dotnet ef migrations add <MigrationName> \
 dotnet ef migrations add <MigrationName> \
   --project api/Services/Catalog/Catalog.Infrastructure \
   --startup-project api/Services/Catalog/Catalog.Api
+
+# Add EF Core migration (Inventory Service)
+dotnet ef migrations add <MigrationName> \
+  --project api/Services/Inventory/Inventory.Infrastructure \
+  --startup-project api/Services/Inventory/Inventory.Api
 ```
 
 ### Frontend
@@ -458,3 +510,4 @@ Each service exposes a `/health` endpoint. The API Gateway proxies them:
 | `GET /health` | API Gateway self |
 | `GET /services/order/health` | Order Service |
 | `GET /services/catalog/health` | Catalog Service |
+| `GET /services/inventory/health` | Inventory Service |
