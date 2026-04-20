@@ -23,14 +23,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <OpenApiReference Include="Contracts/products-management.yaml"
+        <OpenApiReference Include="Products/Contracts/products-management.yaml"
                           Namespace="Catalog.Application.Products.Commands"
                           OutputPath="Products/Commands/ProductCommandsGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">
             <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
         </OpenApiReference>
 
-        <OpenApiReference Include="Contracts/product-query.yaml"
+        <OpenApiReference Include="Products/Contracts/product-query.yaml"
                           Namespace="Catalog.Application.Products.Queries"
                           OutputPath="Products/Queries/ProductQueriesGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">

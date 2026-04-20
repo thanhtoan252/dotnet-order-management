@@ -23,14 +23,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <OpenApiReference Include="Contracts/inventory-management.yaml"
+        <OpenApiReference Include="Items/Contracts/inventory-management.yaml"
                           Namespace="Inventory.Application.Items.Commands"
                           OutputPath="Items/Commands/InventoryCommandsGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">
             <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
         </OpenApiReference>
 
-        <OpenApiReference Include="Contracts/inventory-query.yaml"
+        <OpenApiReference Include="Items/Contracts/inventory-query.yaml"
                           Namespace="Inventory.Application.Items.Queries"
                           OutputPath="Items/Queries/InventoryQueriesGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">
