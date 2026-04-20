@@ -2,16 +2,23 @@ using Catalog.Application.Products.Mappers;
 using Catalog.Domain;
 using Catalog.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using Shared.Contracts;
+using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
 using Shared.Core.ValueObjects;
+using Shared.Messaging.Abstractions;
 
 namespace Catalog.Application.Products.Commands;
 
 public record UpdateProductCommand(Guid ProductId, UpdateProductRequest Request)
     : ICommand<Result<ProductResponse>>;
 
-public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uow, ILogger<UpdateProductHandler> logger)
+public class UpdateProductHandler(
+    IProductRepository productRepo,
+    IUnitOfWork uow,
+    IEventBus eventBus,
+    ILogger<UpdateProductHandler> logger)
     : ICommandHandler<UpdateProductCommand, Result<ProductResponse>>
 {
     public async Task<Result<ProductResponse>> HandleAsync(UpdateProductCommand command, CancellationToken ct)
@@ -23,14 +30,17 @@ public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uo
         }
 
         var request = command.Request;
+        var nameChanged = false;
 
         if (request.Name is not null)
         {
+            var previousName = product.Name;
             var nameResult = product.UpdateName(request.Name);
             if (nameResult.IsFailure)
             {
                 return nameResult.Error;
             }
+            nameChanged = !string.Equals(previousName, product.Name, StringComparison.Ordinal);
         }
 
         if (request.Price.HasValue)
@@ -44,25 +54,17 @@ public class UpdateProductHandler(IProductRepository productRepo, IUnitOfWork uo
             product.UpdatePrice(priceResult.Value);
         }
 
-        if (request.StockQuantity.HasValue)
+        if (nameChanged)
         {
-            var diff = request.StockQuantity.Value - product.StockQuantity;
-            if (diff > 0)
-            {
-                var restockResult = product.AddStock(diff);
-                if (restockResult.IsFailure)
-                {
-                    return restockResult.Error;
-                }
-            }
-            else if (diff < 0)
-            {
-                var deductResult = product.DeductStock(-diff);
-                if (deductResult.IsFailure)
-                {
-                    return deductResult.Error;
-                }
-            }
+            await eventBus.PublishAsync(
+                new ProductRenamedIntegrationEvent(
+                    Guid.NewGuid(),
+                    DateTime.UtcNow,
+                    product.Id,
+                    product.Name),
+                Topics.ProductRenamed,
+                product.Id.ToString(),
+                ct);
         }
 
         await uow.SaveChangesAsync(ct);

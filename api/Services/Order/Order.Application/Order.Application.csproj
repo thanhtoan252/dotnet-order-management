@@ -24,14 +24,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <OpenApiReference Include="Contracts/orders-management.yaml"
+        <OpenApiReference Include="Orders/Contracts/orders-management.yaml"
                           Namespace="Order.Application.Orders.Commands"
                           OutputPath="Orders/Commands/OrderCommandsGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">
             <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List</Options>
         </OpenApiReference>
 
-        <OpenApiReference Include="Contracts/order-query.yaml"
+        <OpenApiReference Include="Orders/Contracts/order-query.yaml"
                           Namespace="Order.Application.Orders.Queries"
                           OutputPath="Orders/Queries/OrderQueriesGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">

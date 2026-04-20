@@ -12,14 +12,6 @@ public class ProductRepository(CatalogDbContext db) : IProductRepository
         return await db.Products.SingleOrDefaultAsync(p => p.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
-    {
-        var idList = ids.ToList();
-        return await db.Products
-            .Where(p => idList.Contains(p.Id))
-            .ToListAsync(ct);
-    }
-
     public async Task<IReadOnlyList<Product>> GetAllAsync(int page, int pageSize, CancellationToken ct = default)
     {
         return await db.Products

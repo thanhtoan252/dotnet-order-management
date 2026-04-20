@@ -1,4 +1,3 @@
-using Catalog.Application.EventHandlers;
 using Catalog.Domain.Repositories;
 using Catalog.Infrastructure.Data;
 using Catalog.Infrastructure.Outbox;
@@ -7,8 +6,6 @@ using Catalog.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Contracts;
-using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging;
 using Shared.Messaging.Abstractions;
@@ -42,10 +39,6 @@ public static class DependencyInjection
 
         // Kafka messaging
         services.AddMessaging(configuration);
-
-        // Kafka consumers
-        services.AddKafkaConsumer<OrderPlacedIntegrationEvent, OrderPlacedConsumer>(Topics.OrderPlaced);
-        services.AddKafkaConsumer<OrderCancelledIntegrationEvent, OrderCancelledConsumer>(Topics.OrderCancelled);
 
         return services;
     }

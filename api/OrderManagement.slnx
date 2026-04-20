@@ -8,6 +8,7 @@
         <Project Path="Shared/Shared.Core/Shared.Core.csproj" />
         <Project Path="Shared/Shared.Contracts/Shared.Contracts.csproj" />
         <Project Path="Shared/Shared.Messaging/Shared.Messaging.csproj" />
+        <Project Path="Shared/Shared.Web/Shared.Web.csproj" />
     </Folder>
     <Folder Name="/Services/Order/">
         <Project Path="Services/Order/Order.Domain/Order.Domain.csproj" />
@@ -23,6 +24,13 @@
         <Project Path="Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
         <Project Path="Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
         <Project Path="Services/Catalog/Catalog.MigrationRunner/Catalog.MigrationRunner.csproj" />
+    </Folder>
+    <Folder Name="/Services/Inventory/">
+        <Project Path="Services/Inventory/Inventory.Domain/Inventory.Domain.csproj" />
+        <Project Path="Services/Inventory/Inventory.Application/Inventory.Application.csproj" />
+        <Project Path="Services/Inventory/Inventory.Infrastructure/Inventory.Infrastructure.csproj" />
+        <Project Path="Services/Inventory/Inventory.Api/Inventory.Api.csproj" />
+        <Project Path="Services/Inventory/Inventory.MigrationRunner/Inventory.MigrationRunner.csproj" />
     </Folder>
     <Folder Name="/Gateway/">
         <Project Path="Gateway/ApiGateway/ApiGateway.csproj" />

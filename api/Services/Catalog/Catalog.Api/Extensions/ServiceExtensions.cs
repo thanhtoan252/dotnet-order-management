@@ -1,4 +1,3 @@
-using Catalog.Api.Middleware;
 using Catalog.Application;
 using Catalog.Infrastructure;
 using Catalog.Infrastructure.Data;
@@ -7,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Formatting.Json;
+using Shared.Web.Middleware;
 
 namespace Catalog.Api.Extensions;
 

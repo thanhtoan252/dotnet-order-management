@@ -8,6 +8,4 @@ public sealed record OrderPlacedIntegrationEvent(
     Guid CustomerId,
     IReadOnlyList<OrderLineItem> Items) : IIntegrationEvent;
 
-public sealed record OrderLineItem(
-    Guid ProductId,
-    int Quantity);
+public sealed record OrderLineItem(Guid ProductId, int Quantity);

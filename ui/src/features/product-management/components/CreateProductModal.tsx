@@ -10,7 +10,7 @@ interface Props {
   onSubmit: (form: CreateProductRequest) => Promise<string | null>;
 }
 
-const emptyForm: CreateProductRequest = { name: '', sku: '', price: 0, currency: 'USD', stockQuantity: 0 };
+const emptyForm: CreateProductRequest = { name: '', sku: '', price: 0, currency: 'USD', initialStockQuantity: 0 };
 
 export const CreateProductModal = ({ loading, onClose, onSubmit }: Props) => {
   const [form, setForm] = useState<CreateProductRequest>(emptyForm);
@@ -72,14 +72,17 @@ export const CreateProductModal = ({ loading, onClose, onSubmit }: Props) => {
             />
           </FormField>
         </div>
-        <FormField label="Stock Quantity">
+        <FormField label="Initial Stock Quantity">
           <input
             className={inputCls}
             type="number"
             min="0"
-            value={form.stockQuantity}
-            onChange={e => setForm(f => ({ ...f, stockQuantity: parseInt(e.target.value) || 0 }))}
+            value={form.initialStockQuantity ?? 0}
+            onChange={e => setForm(f => ({ ...f, initialStockQuantity: parseInt(e.target.value) || 0 }))}
           />
+          <p className="mt-1 text-[11px] text-slate-400">
+            Seeds the inventory when the product is created. Adjust later from the Inventory page.
+          </p>
         </FormField>
       </div>
       <div className="flex justify-end gap-2 mt-6 pt-5 border-t border-slate-100">

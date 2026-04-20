@@ -5,7 +5,6 @@ namespace Catalog.Domain.Repositories;
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task<IReadOnlyList<Product>> GetAllAsync(int page, int pageSize, CancellationToken ct = default);
     Task<IReadOnlyList<Product>> GetBySkuPrefixAsync(string prefix, CancellationToken ct = default);
     void Add(Product product);

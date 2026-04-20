@@ -1,0 +1,82 @@
+openapi: "3.1.0"
+
+info:
+  title: Inventory Management API — Queries
+  version: "1.0"
+  description: Read operations (list inventory, get by product)
+
+servers:
+  - url: http://localhost:5073
+    description: Local development
+
+tags:
+  - name: Inventory
+
+paths:
+  /api/inventory:
+    get:
+      tags: [ Inventory ]
+      operationId: GetInventory
+      summary: List inventory items
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItemResponse"
+
+  /api/inventory/{productId}:
+    get:
+      tags: [ Inventory ]
+      operationId: GetInventoryByProductId
+      summary: Get inventory item for a single product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItemResponse"
+        "404":
+          description: Inventory item not found
+
+components:
+  schemas:
+    InventoryItemResponse:
+      type: object
+      required: [ productId, sku, productName, onHand, reserved, available ]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        productName:
+          type: string
+        onHand:
+          type: integer
+        reserved:
+          type: integer
+        available:
+          type: integer

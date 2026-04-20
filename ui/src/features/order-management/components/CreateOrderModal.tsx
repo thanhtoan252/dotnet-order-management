@@ -84,7 +84,7 @@ export const CreateOrderModal = ({ products, loading, onClose, onSubmit }: Props
             <option value="">-- Select product --</option>
             {products.map(p => (
               <option key={p.id} value={p.id}>
-                {p.name} (Stock: {p.stockQuantity}) — {p.currency} {p.price.toFixed(2)}
+                {p.name} — {p.currency} {p.price.toFixed(2)}
               </option>
             ))}
           </select>

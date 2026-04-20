@@ -5,11 +5,11 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
 
-# Copy central package management
+# Copy central package management and solution
 COPY Directory.Packages.props .
 COPY OrderManagement.slnx .
 
-# Copy project file for restore
+# Copy project files for restore
 COPY Gateway/ApiGateway/ApiGateway.csproj Gateway/ApiGateway/
 
 RUN dotnet restore Gateway/ApiGateway/ApiGateway.csproj
