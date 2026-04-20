@@ -26,7 +26,6 @@ internal static class WebApplicationExtensions
         });
 
         app.MapProductEndpoints();
-        app.MapStockEndpoints();
         app.MapHealthChecks("/health").WithTags("Health");
 
         return app;

@@ -1,5 +1,8 @@
+using ApiGateway.Application;
+using ApiGateway.Application.Endpoints;
 using ApiGateway.Infrastructure;
-using ApiGateway.EndPoints;
+using ApiGateway.Infrastructure.Cors;
+using ApiGateway.Infrastructure.Logging;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -14,18 +17,12 @@ try
 
     builder.Host.AddSerilog();
 
-    builder.Services
-        .AddReverseProxy()
-        .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-
-    builder.Services.AddKeycloakAuth(builder.Configuration);
-    builder.Services.AddRateLimiting();
-    builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment);
-    builder.Services.AddHealthChecks();
+    builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+    builder.Services.AddApplication();
 
     var app = builder.Build();
 
-    app.UseCors("CorsPolicy");
+    app.UseCors(CorsExtensions.PolicyName);
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();

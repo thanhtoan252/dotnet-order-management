@@ -37,6 +37,25 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # ─── Inventory Database (SQL Server) ────────────────────────────────────────
+  inventory-db:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: inventory-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+    ports:
+      - "1435:1433"
+    volumes:
+      - inventory-db-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+
   # ─── Kafka (KRaft mode — no Zookeeper) ──────────────────────────────────────
   kafka:
     image: confluentinc/cp-kafka:7.9.0
@@ -108,6 +127,19 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # ─── Inventory Migration Runner ─────────────────────────────────────────────
+  inventory-migration:
+    build:
+      context: ../api
+      dockerfile: Services/Inventory/Inventory.MigrationRunner/Dockerfile
+    container_name: inventory-migration
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=inventory-db,1433;Database=InventoryDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    restart: "no"
+
   # ─── Order Service ──────────────────────────────────────────────────────────
   order-api:
     build:
@@ -158,6 +190,31 @@ services:
       - ./logs/catalog:/app/logs
     restart: unless-stopped
 
+  # ─── Inventory Service ──────────────────────────────────────────────────────
+  inventory-api:
+    build:
+      context: ../api
+      dockerfile: Services/Inventory/Inventory.Api/Dockerfile
+    container_name: inventory-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ConnectionStrings__DefaultConnection: "Server=inventory-db,1433;Database=InventoryDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      Keycloak__Authority: "http://keycloak:8080/realms/order-management"
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__GroupId: "inventory-service-group"
+    ports:
+      - "8083:8080"
+    depends_on:
+      inventory-migration:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./logs/inventory:/app/logs
+    restart: unless-stopped
+
   # ─── API Gateway (YARP) ─────────────────────────────────────────────────────
   api-gateway:
     build:
@@ -170,12 +227,15 @@ services:
       Keycloak__ClientId: "order-management-api"
       ReverseProxy__Clusters__order-cluster__Destinations__order-api__Address: "http://order-api:8080"
       ReverseProxy__Clusters__catalog-cluster__Destinations__catalog-api__Address: "http://catalog-api:8080"
+      ReverseProxy__Clusters__inventory-cluster__Destinations__inventory-api__Address: "http://inventory-api:8080"
     ports:
       - "8080:8080"
     depends_on:
       order-api:
         condition: service_started
       catalog-api:
+        condition: service_started
+      inventory-api:
         condition: service_started
       keycloak:
         condition: service_healthy
@@ -242,5 +302,6 @@ services:
 volumes:
   order-db-data:
   catalog-db-data:
+  inventory-db-data:
   kafka-data:
   keycloak-db-data:

@@ -12,10 +12,7 @@ namespace Order.Application.EventHandlers;
 ///     Handles StockReserved from Catalog Service — auto-confirms the order
 ///     and updates item snapshots with confirmed product details.
 /// </summary>
-public class StockReservedConsumer(
-    IOrderRepository orderRepo,
-    IUnitOfWork uow,
-    ILogger<StockReservedConsumer> logger)
+public class StockReservedConsumer(IOrderRepository orderRepo, IUnitOfWork uow, ILogger<StockReservedConsumer> logger)
     : IEventConsumer<StockReservedIntegrationEvent>
 {
     public async Task HandleAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)

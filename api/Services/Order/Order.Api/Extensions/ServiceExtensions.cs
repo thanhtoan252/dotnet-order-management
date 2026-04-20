@@ -1,12 +1,12 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Order.Api.Middleware;
 using Order.Application;
 using Order.Infrastructure;
 using Order.Infrastructure.Data;
 using Serilog;
 using Serilog.Formatting.Json;
+using Shared.Web.Middleware;
 
 namespace Order.Api.Extensions;
 

@@ -42,10 +42,10 @@ public static class DependencyInjection
         services.AddScoped<IEventBus, OutboxEventBus>();
         services.AddHostedService<OutboxProcessor>();
 
-        // Catalog Service Refit client (sync stock check via API Gateway)
+        // Inventory Service Refit client (sync availability check via API Gateway)
         var gatewayBaseUrl = configuration["ApiGateway:BaseUrl"]
             ?? throw new InvalidOperationException("ApiGateway:BaseUrl is not configured.");
-        services.AddRefitClient<ICatalogService>()
+        services.AddRefitClient<IInventoryService>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(gatewayBaseUrl))
             .AddStandardResilienceHandler();
 

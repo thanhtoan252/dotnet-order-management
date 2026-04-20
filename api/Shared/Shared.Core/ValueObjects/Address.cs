@@ -4,11 +4,7 @@ namespace Shared.Core.ValueObjects;
 ///     Immutable value object — represents a physical address.
 ///     Two addresses are equal if all their components are equal.
 /// </summary>
-public sealed record Address(
-    string Street,
-    string City,
-    string Province,
-    string ZipCode)
+public sealed record Address(string Street, string City, string Province, string ZipCode)
 {
     public static Address Create(string street, string city, string province, string zipCode)
     {

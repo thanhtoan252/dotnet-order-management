@@ -1,19 +1,19 @@
-using ApiGateway.Application.Options;
-using ApiGateway.Application.Services;
-using Refit;
+using ApiGateway.Infrastructure.Authentication;
+using ApiGateway.Infrastructure.Cors;
+using ApiGateway.Infrastructure.RateLimiting;
+using ApiGateway.Infrastructure.ReverseProxy;
 
 namespace ApiGateway.Infrastructure;
 
 internal static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var keycloak = configuration.GetSection(KeycloakSettings.SectionName).Get<KeycloakSettings>()
-                       ?? throw new InvalidOperationException("Keycloak settings are not configured.");
-
-        services.AddRefitClient<IKeycloakClient>()
-            .ConfigureHttpClient(c => c.BaseAddress = new Uri(keycloak.Authority))
-            .AddStandardResilienceHandler();
+        services.AddYarpReverseProxy(configuration);
+        services.AddKeycloakAuthentication(configuration);
+        services.AddRateLimiting();
+        services.AddCorsPolicy(configuration, environment);
+        services.AddHealthChecks();
 
         return services;
     }

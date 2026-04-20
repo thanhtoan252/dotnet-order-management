@@ -1,0 +1,61 @@
+openapi: "3.1.0"
+
+info:
+  title: Product Management API — Queries
+  version: "1.0"
+  description: Read operations (list products)
+
+servers:
+  - url: http://localhost:5072
+    description: Local development
+
+tags:
+  - name: Products
+
+paths:
+  /api/products:
+    get:
+      tags: [ Products ]
+      operationId: GetProducts
+      summary: Get all available products
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductResponse"
+
+components:
+  schemas:
+    ProductResponse:
+      type: object
+      required: [ id, name, sku, price, currency ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        sku:
+          type: string
+        price:
+          type: number
+          format: decimal
+        currency:
+          type: string

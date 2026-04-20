@@ -10,6 +10,8 @@ public class CreateProductRequestValidator : AbstractValidator<CreateProductRequ
         RuleFor(x => x.Name).NotEmpty();
         RuleFor(x => x.Sku).NotEmpty();
         RuleFor(x => x.Price).GreaterThan(0).WithMessage("Price must be positive.");
-        RuleFor(x => x.StockQuantity).GreaterThanOrEqualTo(0).WithMessage("Stock quantity cannot be negative.");
+        RuleFor(x => x.InitialStockQuantity)
+            .GreaterThanOrEqualTo(0).WithMessage("Initial stock quantity cannot be negative.")
+            .When(x => x.InitialStockQuantity.HasValue);
     }
 }

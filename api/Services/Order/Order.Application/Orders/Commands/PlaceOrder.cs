@@ -20,7 +20,7 @@ public class PlaceOrderHandler(
     IOrderRepository orderRepo,
     IUnitOfWork uow,
     IEventBus eventBus,
-    ICatalogService catalogService,
+    IInventoryService inventoryService,
     ILogger<PlaceOrderHandler> logger)
     : ICommandHandler<PlaceOrderCommand, Result<OrderResponse>>
 {
@@ -28,12 +28,12 @@ public class PlaceOrderHandler(
     {
         var request = command.Request;
 
-        // Synchronous stock check before creating the order
+        // Synchronous availability check against Inventory before creating the order
         var stockItems = request.Lines
             .Select(l => new StockCheckItem(l.ProductId, l.Quantity))
             .ToList();
 
-        var stockCheck = await catalogService.CheckStockAsync(new StockCheckRequest(stockItems), ct);
+        var stockCheck = await inventoryService.CheckAvailabilityAsync(new StockCheckRequest(stockItems), ct);
         if (!stockCheck.IsAvailable)
         {
             var reasons = string.Join("; ", stockCheck.Failures.Select(f => f.Reason));
