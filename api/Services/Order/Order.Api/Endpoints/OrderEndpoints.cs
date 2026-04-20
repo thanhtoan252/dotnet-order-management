@@ -68,8 +68,7 @@ public static class OrderEndpoints
             return Results.ValidationProblem(validation.ToDictionary());
         }
 
-        var result = await dispatcher.SendAsync(
-            new PlaceOrderCommand(request, GetUsername(httpContext.User)), ct);
+        var result = await dispatcher.SendAsync(new PlaceOrderCommand(request, GetUsername(httpContext.User)), ct);
 
         if (result.IsFailure)
         {
@@ -107,8 +106,7 @@ public static class OrderEndpoints
     private static async Task<IResult> ConfirmOrderAsync(Guid id, IDispatcher dispatcher,
         HttpContext httpContext, CancellationToken ct)
     {
-        var result = await dispatcher.SendAsync(
-            new ConfirmOrderCommand(id, GetUsername(httpContext.User)), ct);
+        var result = await dispatcher.SendAsync(new ConfirmOrderCommand(id, GetUsername(httpContext.User)), ct);
 
         if (result.IsFailure)
         {
@@ -121,8 +119,7 @@ public static class OrderEndpoints
     private static async Task<IResult> ShipOrderAsync(Guid id, IDispatcher dispatcher,
         HttpContext httpContext, CancellationToken ct)
     {
-        var result = await dispatcher.SendAsync(
-            new ShipOrderCommand(id, GetUsername(httpContext.User)), ct);
+        var result = await dispatcher.SendAsync(new ShipOrderCommand(id, GetUsername(httpContext.User)), ct);
 
         if (result.IsFailure)
         {
@@ -149,8 +146,7 @@ public static class OrderEndpoints
     private static async Task<IResult> DeliverOrderAsync(Guid id, IDispatcher dispatcher,
         HttpContext httpContext, CancellationToken ct)
     {
-        var result = await dispatcher.SendAsync(
-            new DeliverOrderCommand(id, GetUsername(httpContext.User)), ct);
+        var result = await dispatcher.SendAsync(new DeliverOrderCommand(id, GetUsername(httpContext.User)), ct);
 
         if (result.IsFailure)
         {

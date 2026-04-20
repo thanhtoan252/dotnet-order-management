@@ -10,10 +10,7 @@ namespace Inventory.Application.Items.Commands;
 public record ReceiveStockCommand(Guid ProductId, ReceiveStockRequest Request)
     : ICommand<Result<InventoryItemResponse>>;
 
-public class ReceiveStockHandler(
-    IInventoryRepository repo,
-    IUnitOfWork uow,
-    ILogger<ReceiveStockHandler> logger)
+public class ReceiveStockHandler(IInventoryRepository repo, IUnitOfWork uow, ILogger<ReceiveStockHandler> logger)
     : ICommandHandler<ReceiveStockCommand, Result<InventoryItemResponse>>
 {
     public async Task<Result<InventoryItemResponse>> HandleAsync(ReceiveStockCommand command, CancellationToken ct)

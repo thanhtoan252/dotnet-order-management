@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ApiGateway.Application.Contracts;
+namespace ApiGateway.Infrastructure.Authentication;
 
 public sealed record KeycloakTokenResponse(
     [property: JsonPropertyName("access_token")] string AccessToken,

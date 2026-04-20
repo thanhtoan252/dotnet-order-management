@@ -22,11 +22,7 @@ public class ProductCreatedConsumer(
             return;
         }
 
-        var itemResult = InventoryItem.Create(
-            @event.ProductId,
-            @event.Sku,
-            @event.Name,
-            @event.InitialStockQuantity);
+        var itemResult = InventoryItem.Create(@event.ProductId, @event.Sku, @event.Name, @event.InitialStockQuantity);
 
         if (itemResult.IsFailure)
         {

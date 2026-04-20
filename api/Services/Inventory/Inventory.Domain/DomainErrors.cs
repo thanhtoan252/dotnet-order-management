@@ -22,8 +22,7 @@ public static class DomainErrors
 
         public static Error AlreadyExists(Guid productId)
         {
-            return new Error("InventoryItem.AlreadyExists",
-                $"Inventory for product {productId} already exists.");
+            return new Error("InventoryItem.AlreadyExists", $"Inventory for product {productId} already exists.");
         }
 
         public static Error InsufficientStock(string productName, int available, int requested)

@@ -10,10 +10,7 @@ namespace Inventory.Application.Items.Commands;
 public record AdjustStockCommand(Guid ProductId, AdjustStockRequest Request)
     : ICommand<Result<InventoryItemResponse>>;
 
-public class AdjustStockHandler(
-    IInventoryRepository repo,
-    IUnitOfWork uow,
-    ILogger<AdjustStockHandler> logger)
+public class AdjustStockHandler(IInventoryRepository repo, IUnitOfWork uow, ILogger<AdjustStockHandler> logger)
     : ICommandHandler<AdjustStockCommand, Result<InventoryItemResponse>>
 {
     public async Task<Result<InventoryItemResponse>> HandleAsync(AdjustStockCommand command, CancellationToken ct)

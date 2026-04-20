@@ -1,7 +1,6 @@
-using ApiGateway.Application.Contracts;
 using Refit;
 
-namespace ApiGateway.Application.Services;
+namespace ApiGateway.Infrastructure.Authentication;
 
 public interface IKeycloakClient
 {

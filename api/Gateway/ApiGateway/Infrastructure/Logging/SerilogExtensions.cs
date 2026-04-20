@@ -1,8 +1,8 @@
 using Serilog;
 
-namespace ApiGateway.Infrastructure;
+namespace ApiGateway.Infrastructure.Logging;
 
-internal static class LoggingConfiguration
+internal static class SerilogExtensions
 {
     public static IHostBuilder AddSerilog(this IHostBuilder host)
     {

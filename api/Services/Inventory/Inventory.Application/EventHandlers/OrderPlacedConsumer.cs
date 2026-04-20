@@ -31,8 +31,7 @@ public class OrderPlacedConsumer(
         {
             if (!itemMap.TryGetValue(line.ProductId, out var item))
             {
-                await PublishFailure(@event.OrderId,
-                    DomainErrors.InventoryItem.NotFound(line.ProductId).Message, ct);
+                await PublishFailure(@event.OrderId, DomainErrors.InventoryItem.NotFound(line.ProductId).Message, ct);
                 return;
             }
 
@@ -63,11 +62,7 @@ public class OrderPlacedConsumer(
         }
 
         await eventBus.PublishAsync(
-            new StockReservedIntegrationEvent(
-                Guid.NewGuid(),
-                DateTime.UtcNow,
-                @event.OrderId,
-                reservedItems),
+            new StockReservedIntegrationEvent(Guid.NewGuid(), DateTime.UtcNow, @event.OrderId, reservedItems),
             Topics.StockReserved,
             @event.OrderId.ToString(),
             ct);
@@ -82,11 +77,7 @@ public class OrderPlacedConsumer(
         logger.LogWarning("Inventory reservation failed for order {OrderId}: {Reason}", orderId, reason);
 
         await eventBus.PublishAsync(
-            new StockReservationFailedIntegrationEvent(
-                Guid.NewGuid(),
-                DateTime.UtcNow,
-                orderId,
-                reason),
+            new StockReservationFailedIntegrationEvent(Guid.NewGuid(), DateTime.UtcNow, orderId, reason),
             Topics.StockReservationFailed,
             orderId.ToString(),
             ct);

@@ -6,6 +6,4 @@ public sealed record StockReservedIntegrationEvent(
     Guid OrderId,
     IReadOnlyList<ReservedItem> Items) : IIntegrationEvent;
 
-public sealed record ReservedItem(
-    Guid ProductId,
-    int Quantity);
+public sealed record ReservedItem(Guid ProductId, int Quantity);

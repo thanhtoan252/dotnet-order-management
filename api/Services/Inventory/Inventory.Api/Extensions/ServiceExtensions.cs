@@ -30,8 +30,7 @@ internal static class ServiceExtensions
                 retainedFileCountLimit: 7));
     }
 
-    public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddApplication()

@@ -1,9 +1,9 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace ApiGateway.Infrastructure;
+namespace ApiGateway.Infrastructure.RateLimiting;
 
-internal static class RateLimitingConfiguration
+internal static class RateLimitingExtensions
 {
     public static IServiceCollection AddRateLimiting(this IServiceCollection services)
     {
