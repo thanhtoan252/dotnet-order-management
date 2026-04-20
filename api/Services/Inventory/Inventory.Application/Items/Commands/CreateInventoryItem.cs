@@ -11,10 +11,7 @@ namespace Inventory.Application.Items.Commands;
 public record CreateInventoryItemCommand(CreateInventoryItemRequest Request)
     : ICommand<Result<InventoryItemResponse>>;
 
-public class CreateInventoryItemHandler(
-    IInventoryRepository repo,
-    IUnitOfWork uow,
-    ILogger<CreateInventoryItemHandler> logger)
+public class CreateInventoryItemHandler(IInventoryRepository repo, IUnitOfWork uow, ILogger<CreateInventoryItemHandler> logger)
     : ICommandHandler<CreateInventoryItemCommand, Result<InventoryItemResponse>>
 {
     public async Task<Result<InventoryItemResponse>> HandleAsync(CreateInventoryItemCommand command, CancellationToken ct)
@@ -26,11 +23,7 @@ public class CreateInventoryItemHandler(
             return DomainErrors.InventoryItem.AlreadyExists(request.ProductId);
         }
 
-        var createResult = InventoryItem.Create(
-            request.ProductId,
-            request.Sku,
-            request.ProductName,
-            request.InitialQuantity);
+        var createResult = InventoryItem.Create( request.ProductId, request.Sku, request.ProductName, request.InitialQuantity);
 
         if (createResult.IsFailure)
         {
