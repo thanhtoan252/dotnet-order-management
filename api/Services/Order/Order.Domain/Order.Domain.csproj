@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Order.UnitTests" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\..\Shared\Shared.Core\Shared.Core.csproj"/>
     </ItemGroup>
 
