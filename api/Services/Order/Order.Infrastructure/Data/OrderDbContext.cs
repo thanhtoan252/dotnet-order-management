@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Order.Application.Abstractions;
 using Order.Domain.Entities;
 using Order.Infrastructure.Outbox;
 using Shared.Core.Domain;
@@ -7,7 +6,7 @@ using Shared.Core.Domain;
 namespace Order.Infrastructure.Data;
 
 public class OrderDbContext(DbContextOptions<OrderDbContext> options, TimeProvider timeProvider)
-    : DbContext(options), IOrderDbContext
+    : DbContext(options)
 {
     public DbSet<OrderAggregate> Orders => Set<OrderAggregate>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();

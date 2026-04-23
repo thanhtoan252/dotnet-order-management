@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Domain.Repositories;
 using Shared.Core.CQRS;
 
 namespace Order.Application.Orders.Queries;
@@ -8,20 +7,12 @@ namespace Order.Application.Orders.Queries;
 public record GetCustomerOrdersQuery(Guid CustomerId, int Page = 1, int PageSize = 20)
     : IQuery<IReadOnlyList<OrderResponse>>;
 
-public class GetCustomerOrdersHandler(IOrderDbContext db)
+public class GetCustomerOrdersHandler(IOrderRepository orderRepo)
     : IQueryHandler<GetCustomerOrdersQuery, IReadOnlyList<OrderResponse>>
 {
     public async Task<IReadOnlyList<OrderResponse>> HandleAsync(GetCustomerOrdersQuery query, CancellationToken ct)
     {
-        var orders = await db.Orders
-            .Include(o => o.Items)
-            .Where(o => o.CustomerId == query.CustomerId)
-            .OrderByDescending(o => o.CreatedAt)
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
+        var orders = await orderRepo.GetByCustomerIdAsync(query.CustomerId, query.Page, query.PageSize, ct);
         return orders.Select(o => o.ToQueryResponse()).ToList();
     }
 }

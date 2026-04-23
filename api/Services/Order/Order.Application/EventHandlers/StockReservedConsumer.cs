@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Domain.Repositories;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Core.ValueObjects;
@@ -13,14 +12,14 @@ namespace Order.Application.EventHandlers;
 ///     Handles StockReserved from Catalog Service — auto-confirms the order
 ///     and updates item snapshots with confirmed product details.
 /// </summary>
-public class StockReservedConsumer(IOrderDbContext db, ILogger<StockReservedConsumer> logger)
+public class StockReservedConsumer(IOrderRepository orderRepo, IUnitOfWork uow, ILogger<StockReservedConsumer> logger)
     : IEventConsumer<StockReservedIntegrationEvent>
 {
     public async Task HandleAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
     {
         logger.LogInformation("Stock reserved for order {OrderId}, auto-confirming", @event.OrderId);
 
-        var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == @event.OrderId, ct);
+        var order = await orderRepo.GetByIdWithItemsAsync(@event.OrderId, ct);
         if (order is null)
         {
             logger.LogWarning("Order {OrderId} not found when processing StockReserved event", @event.OrderId);
@@ -34,7 +33,7 @@ public class StockReservedConsumer(IOrderDbContext db, ILogger<StockReservedCons
             return;
         }
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} auto-confirmed after stock reservation", order.OrderNumber);
     }

@@ -1,8 +1,11 @@
 using Order.Application.Common.Helpers;
 using Order.Domain.Entities;
 using Shared.Core.ValueObjects;
+using System.Runtime.CompilerServices;
 using CmdDto = Order.Application.Orders.Commands;
 using QryDto = Order.Application.Orders.Queries;
+
+[assembly: InternalsVisibleTo("Order.UnitTests")]
 
 namespace Order.Application.Orders.Mappers;
 

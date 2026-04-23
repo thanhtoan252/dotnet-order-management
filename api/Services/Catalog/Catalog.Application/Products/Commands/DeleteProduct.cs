@@ -1,6 +1,5 @@
-using Catalog.Application.Abstractions;
 using Catalog.Domain;
-using Microsoft.EntityFrameworkCore;
+using Catalog.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -14,14 +13,15 @@ public record DeleteProductCommand(Guid ProductId)
     : ICommand<Result>;
 
 public class DeleteProductHandler(
-    ICatalogDbContext db,
+    IProductRepository productRepo,
+    IUnitOfWork uow,
     IEventBus eventBus,
     ILogger<DeleteProductHandler> logger)
     : ICommandHandler<DeleteProductCommand, Result>
 {
     public async Task<Result> HandleAsync(DeleteProductCommand command, CancellationToken ct)
     {
-        var product = await db.Products.SingleOrDefaultAsync(p => p.Id == command.ProductId, ct);
+        var product = await productRepo.GetByIdAsync(command.ProductId, ct);
         if (product is null)
         {
             return DomainErrors.Product.NotFound(command.ProductId);
@@ -38,7 +38,7 @@ public class DeleteProductHandler(
             product.Id.ToString(),
             ct);
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} deleted.", command.ProductId);
 

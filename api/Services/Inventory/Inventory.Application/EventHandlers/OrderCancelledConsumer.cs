@@ -1,5 +1,4 @@
-using Inventory.Application.Abstractions;
-using Microsoft.EntityFrameworkCore;
+using Inventory.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
@@ -8,7 +7,8 @@ using Shared.Messaging.Abstractions;
 namespace Inventory.Application.EventHandlers;
 
 public class OrderCancelledConsumer(
-    IInventoryDbContext db,
+    IInventoryRepository inventoryRepo,
+    IUnitOfWork uow,
     ILogger<OrderCancelledConsumer> logger)
     : IEventConsumer<OrderCancelledIntegrationEvent>
 {
@@ -18,9 +18,7 @@ public class OrderCancelledConsumer(
             @event.OrderId, @event.OrderNumber);
 
         var productIds = @event.Items.Select(i => i.ProductId).ToList();
-        var items = await db.InventoryItems
-            .Where(i => productIds.Contains(i.ProductId))
-            .ToListAsync(ct);
+        var items = await inventoryRepo.GetByProductIdsAsync(productIds, ct);
         var itemMap = items.ToDictionary(i => i.ProductId);
 
         foreach (var line in @event.Items)
@@ -40,10 +38,10 @@ public class OrderCancelledConsumer(
                 continue;
             }
 
-            db.InventoryItems.Update(item);
+            inventoryRepo.Update(item);
         }
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Inventory released for cancelled order {OrderId}", @event.OrderId);
     }

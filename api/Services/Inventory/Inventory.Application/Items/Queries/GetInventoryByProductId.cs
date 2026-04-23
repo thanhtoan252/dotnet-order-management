@@ -1,6 +1,5 @@
-using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
-using Microsoft.EntityFrameworkCore;
+using Inventory.Domain.Repositories;
 using Shared.Core.CQRS;
 
 namespace Inventory.Application.Items.Queries;
@@ -8,12 +7,12 @@ namespace Inventory.Application.Items.Queries;
 public record GetInventoryByProductIdQuery(Guid ProductId)
     : IQuery<InventoryItemResponse?>;
 
-public class GetInventoryByProductIdHandler(IInventoryDbContext db)
+public class GetInventoryByProductIdHandler(IInventoryRepository repo)
     : IQueryHandler<GetInventoryByProductIdQuery, InventoryItemResponse?>
 {
     public async Task<InventoryItemResponse?> HandleAsync(GetInventoryByProductIdQuery query, CancellationToken ct)
     {
-        var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == query.ProductId, ct);
+        var item = await repo.GetByProductIdAsync(query.ProductId, ct);
         return item?.ToQueryResponse();
     }
 }

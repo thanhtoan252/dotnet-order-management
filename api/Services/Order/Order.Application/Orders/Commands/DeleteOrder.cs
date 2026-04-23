@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Order.Application.Abstractions;
 using Order.Domain;
+using Order.Domain.Repositories;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
@@ -19,14 +18,15 @@ public record DeleteOrderCommand(Guid OrderId)
 ///     so Catalog Service can restore stock.
 /// </summary>
 public class DeleteOrderHandler(
-    IOrderDbContext db,
+    IOrderRepository orderRepo,
+    IUnitOfWork uow,
     IEventBus eventBus,
     ILogger<DeleteOrderHandler> logger)
     : ICommandHandler<DeleteOrderCommand, Result>
 {
     public async Task<Result> HandleAsync(DeleteOrderCommand command, CancellationToken ct)
     {
-        var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
+        var order = await orderRepo.GetByIdWithItemsAsync(command.OrderId, ct);
         if (order is null)
         {
             return DomainErrors.Order.NotFound(command.OrderId);
@@ -54,7 +54,7 @@ public class DeleteOrderHandler(
         }
 
         order.IsDeleted = true;
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         return Result.Success();
     }

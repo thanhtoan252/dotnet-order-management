@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Order.Application.Abstractions;
+using Order.Domain.Repositories;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging.Abstractions;
@@ -11,7 +10,8 @@ namespace Order.Application.EventHandlers;
 ///     Handles StockReservationFailed from Catalog Service — auto-cancels the order.
 /// </summary>
 public class StockReservationFailedConsumer(
-    IOrderDbContext db,
+    IOrderRepository orderRepo,
+    IUnitOfWork uow,
     ILogger<StockReservationFailedConsumer> logger)
     : IEventConsumer<StockReservationFailedIntegrationEvent>
 {
@@ -19,7 +19,7 @@ public class StockReservationFailedConsumer(
     {
         logger.LogWarning("Stock reservation failed for order {OrderId}: {Reason}", @event.OrderId, @event.Reason);
 
-        var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == @event.OrderId, ct);
+        var order = await orderRepo.GetByIdWithItemsAsync(@event.OrderId, ct);
         if (order is null)
         {
             logger.LogWarning("Order {OrderId} not found when processing StockReservationFailed event", @event.OrderId);
@@ -33,7 +33,7 @@ public class StockReservationFailedConsumer(
             return;
         }
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} auto-cancelled due to stock reservation failure", order.OrderNumber);
     }

@@ -1,6 +1,9 @@
 using Catalog.Domain.Entities;
+using System.Runtime.CompilerServices;
 using CmdDto = Catalog.Application.Products.Commands;
 using QryDto = Catalog.Application.Products.Queries;
+
+[assembly: InternalsVisibleTo("Catalog.UnitTests")]
 
 namespace Catalog.Application.Products.Mappers;
 

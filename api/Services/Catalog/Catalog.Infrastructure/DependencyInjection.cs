@@ -1,9 +1,12 @@
-using Catalog.Application.Abstractions;
+using Catalog.Domain.Repositories;
 using Catalog.Infrastructure.Data;
 using Catalog.Infrastructure.Outbox;
+using Catalog.Infrastructure.Persistence;
+using Catalog.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Core.CQRS;
 using Shared.Messaging;
 using Shared.Messaging.Abstractions;
 
@@ -24,7 +27,8 @@ public static class DependencyInjection
                 }));
 
         services.AddSingleton(TimeProvider.System);
-        services.AddScoped<ICatalogDbContext>(sp => sp.GetRequiredService<CatalogDbContext>());
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Outbox pattern (per-service)
         services.AddScoped<IOutboxStore, OutboxStore>();

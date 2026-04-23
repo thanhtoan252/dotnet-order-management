@@ -1,7 +1,6 @@
-using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
 using Inventory.Domain;
-using Microsoft.EntityFrameworkCore;
+using Inventory.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -11,12 +10,12 @@ namespace Inventory.Application.Items.Commands;
 public record AdjustStockCommand(Guid ProductId, AdjustStockRequest Request)
     : ICommand<Result<InventoryItemResponse>>;
 
-public class AdjustStockHandler(IInventoryDbContext db, ILogger<AdjustStockHandler> logger)
+public class AdjustStockHandler(IInventoryRepository repo, IUnitOfWork uow, ILogger<AdjustStockHandler> logger)
     : ICommandHandler<AdjustStockCommand, Result<InventoryItemResponse>>
 {
     public async Task<Result<InventoryItemResponse>> HandleAsync(AdjustStockCommand command, CancellationToken ct)
     {
-        var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == command.ProductId, ct);
+        var item = await repo.GetByProductIdAsync(command.ProductId, ct);
         if (item is null)
         {
             return DomainErrors.InventoryItem.NotFound(command.ProductId);
@@ -28,7 +27,7 @@ public class AdjustStockHandler(IInventoryDbContext db, ILogger<AdjustStockHandl
             return setResult.Error;
         }
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Adjusted stock for product {ProductId} to {OnHand}. Reason: {Reason}",
             command.ProductId, item.OnHand, command.Request.Reason ?? "(none)");

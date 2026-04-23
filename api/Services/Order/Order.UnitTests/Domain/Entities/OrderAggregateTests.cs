@@ -61,4 +61,100 @@ public class OrderAggregateTests
         order.Status.Should().Be(OrderStatus.Confirmed);
         order.ConfirmedAt.Should().NotBeNull();
     }
+
+    [Test]
+    public void AddItem_Should_Fail_WhenCurrencyIsDifferent()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+        order.AddItem(Guid.NewGuid(), "P1", Money.Create(10, "USD").Value, 1);
+
+        // Act
+        var result = order.AddItem(Guid.NewGuid(), "P2", Money.Create(10, "EUR").Value, 1);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DomainErrors.Order.CurrencyMismatch);
+    }
+
+    [Test]
+    public void Ship_Should_Succeed_WhenOrderIsConfirmed()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+        order.AddItem(Guid.NewGuid(), "P1", Money.Create(10).Value, 1);
+        order.Confirm("user");
+
+        // Act
+        var result = order.Ship("user");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        order.Status.Should().Be(OrderStatus.Shipped);
+        order.ShippedAt.Should().NotBeNull();
+    }
+
+    [Test]
+    public void Ship_Should_Fail_WhenOrderIsPending()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+
+        // Act
+        var result = order.Ship("user");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Order.InvalidState");
+    }
+
+    [Test]
+    public void MarkDelivered_Should_Succeed_WhenOrderIsShipped()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+        order.AddItem(Guid.NewGuid(), "P1", Money.Create(10).Value, 1);
+        order.Confirm("user");
+        order.Ship("user");
+
+        // Act
+        var result = order.MarkDelivered();
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        order.Status.Should().Be(OrderStatus.Delivered);
+        order.DeliveredAt.Should().NotBeNull();
+    }
+
+    [Test]
+    public void Cancel_Should_Succeed_WhenOrderIsPending()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+
+        // Act
+        var result = order.Cancel("reason", "user");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        order.Status.Should().Be(OrderStatus.Cancelled);
+        order.CancelledAt.Should().NotBeNull();
+    }
+
+    [Test]
+    public void Cancel_Should_Fail_WhenOrderIsShipped()
+    {
+        // Arrange
+        var order = OrderAggregate.Create(Guid.NewGuid(), _validAddress).Value;
+        order.AddItem(Guid.NewGuid(), "P1", Money.Create(10).Value, 1);
+        order.Confirm("user");
+        order.Ship("user");
+
+        // Act
+        var result = order.Cancel("reason", "user");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Order.InvalidState");
+    }
 }

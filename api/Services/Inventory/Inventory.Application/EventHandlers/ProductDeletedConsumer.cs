@@ -1,5 +1,4 @@
-using Inventory.Application.Abstractions;
-using Microsoft.EntityFrameworkCore;
+using Inventory.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
@@ -8,13 +7,14 @@ using Shared.Messaging.Abstractions;
 namespace Inventory.Application.EventHandlers;
 
 public class ProductDeletedConsumer(
-    IInventoryDbContext db,
+    IInventoryRepository inventoryRepo,
+    IUnitOfWork uow,
     ILogger<ProductDeletedConsumer> logger)
     : IEventConsumer<ProductDeletedIntegrationEvent>
 {
     public async Task HandleAsync(ProductDeletedIntegrationEvent @event, CancellationToken ct = default)
     {
-        var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == @event.ProductId, ct);
+        var item = await inventoryRepo.GetByProductIdAsync(@event.ProductId, ct);
         if (item is null)
         {
             logger.LogInformation("No inventory item found for deleted product {ProductId}, skipping.",
@@ -23,8 +23,8 @@ public class ProductDeletedConsumer(
         }
 
         item.IsDeleted = true;
-        db.InventoryItems.Update(item);
-        await db.SaveChangesAsync(ct);
+        inventoryRepo.Update(item);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation("Inventory item soft-deleted for product {ProductId}.", @event.ProductId);
     }

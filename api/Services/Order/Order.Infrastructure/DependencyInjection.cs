@@ -1,14 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Order.Application.Abstractions;
 using Order.Application.EventHandlers;
 using Order.Application.Services;
+using Order.Domain.Repositories;
 using Order.Infrastructure.Data;
 using Order.Infrastructure.Outbox;
+using Order.Infrastructure.Persistence;
+using Order.Infrastructure.Repositories;
 using Refit;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
+using Shared.Core.CQRS;
 using Shared.Messaging;
 using Shared.Messaging.Abstractions;
 
@@ -29,7 +32,8 @@ public static class DependencyInjection
                 }));
 
         services.AddSingleton(TimeProvider.System);
-        services.AddScoped<IOrderDbContext>(sp => sp.GetRequiredService<OrderDbContext>());
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Outbox pattern (per-service)
         services.AddScoped<IOutboxStore, OutboxStore>();

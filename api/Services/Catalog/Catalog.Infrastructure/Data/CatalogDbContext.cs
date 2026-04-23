@@ -1,4 +1,3 @@
-using Catalog.Application.Abstractions;
 using Catalog.Domain.Entities;
 using Catalog.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,7 @@ using Shared.Core.Domain;
 namespace Catalog.Infrastructure.Data;
 
 public class CatalogDbContext(DbContextOptions<CatalogDbContext> options, TimeProvider timeProvider)
-    : DbContext(options), ICatalogDbContext
+    : DbContext(options)
 {
     public DbSet<Product> Products => Set<Product>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

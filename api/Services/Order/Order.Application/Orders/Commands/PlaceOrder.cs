@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
-using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
 using Order.Application.Services;
 using Order.Domain;
 using Order.Domain.Entities;
+using Order.Domain.Repositories;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
@@ -17,7 +17,8 @@ public record PlaceOrderCommand(PlaceOrderRequest Request, string PlacedBy)
     : ICommand<Result<OrderResponse>>;
 
 public class PlaceOrderHandler(
-    IOrderDbContext db,
+    IOrderRepository orderRepo,
+    IUnitOfWork uow,
     IEventBus eventBus,
     IInventoryService inventoryService,
     ILogger<PlaceOrderHandler> logger)
@@ -76,7 +77,7 @@ public class PlaceOrderHandler(
             }
         }
 
-        db.Orders.Add(order);
+        orderRepo.Add(order);
 
         // Publish integration event for Catalog Service to reserve stock
         var integrationEvent = new OrderPlacedIntegrationEvent(
@@ -89,7 +90,7 @@ public class PlaceOrderHandler(
 
         await eventBus.PublishAsync(integrationEvent, Topics.OrderPlaced, order.Id.ToString(), ct);
 
-        await db.SaveChangesAsync(ct);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation(
             "Order {OrderNumber} placed by {User} for customer {CustomerId} with {ItemCount} item(s). Total: {Total}. Awaiting stock reservation.",
