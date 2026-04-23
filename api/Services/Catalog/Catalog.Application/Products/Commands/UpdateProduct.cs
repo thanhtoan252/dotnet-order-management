@@ -1,6 +1,7 @@
+using Catalog.Application.Abstractions;
 using Catalog.Application.Products.Mappers;
 using Catalog.Domain;
-using Catalog.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -15,15 +16,14 @@ public record UpdateProductCommand(Guid ProductId, UpdateProductRequest Request)
     : ICommand<Result<ProductResponse>>;
 
 public class UpdateProductHandler(
-    IProductRepository productRepo,
-    IUnitOfWork uow,
+    ICatalogDbContext db,
     IEventBus eventBus,
     ILogger<UpdateProductHandler> logger)
     : ICommandHandler<UpdateProductCommand, Result<ProductResponse>>
 {
     public async Task<Result<ProductResponse>> HandleAsync(UpdateProductCommand command, CancellationToken ct)
     {
-        var product = await productRepo.GetByIdAsync(command.ProductId, ct);
+        var product = await db.Products.SingleOrDefaultAsync(p => p.Id == command.ProductId, ct);
         if (product is null)
         {
             return DomainErrors.Product.NotFound(command.ProductId);
@@ -67,7 +67,7 @@ public class UpdateProductHandler(
                 ct);
         }
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Id} updated.", command.ProductId);
 

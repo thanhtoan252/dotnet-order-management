@@ -1,6 +1,7 @@
+using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
 using Inventory.Domain;
-using Inventory.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -10,12 +11,12 @@ namespace Inventory.Application.Items.Commands;
 public record ReceiveStockCommand(Guid ProductId, ReceiveStockRequest Request)
     : ICommand<Result<InventoryItemResponse>>;
 
-public class ReceiveStockHandler(IInventoryRepository repo, IUnitOfWork uow, ILogger<ReceiveStockHandler> logger)
+public class ReceiveStockHandler(IInventoryDbContext db, ILogger<ReceiveStockHandler> logger)
     : ICommandHandler<ReceiveStockCommand, Result<InventoryItemResponse>>
 {
     public async Task<Result<InventoryItemResponse>> HandleAsync(ReceiveStockCommand command, CancellationToken ct)
     {
-        var item = await repo.GetByProductIdAsync(command.ProductId, ct);
+        var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == command.ProductId, ct);
         if (item is null)
         {
             return DomainErrors.InventoryItem.NotFound(command.ProductId);
@@ -27,7 +28,7 @@ public class ReceiveStockHandler(IInventoryRepository repo, IUnitOfWork uow, ILo
             return receiveResult.Error;
         }
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Received {Qty} units for product {ProductId}. New OnHand: {OnHand}",
             command.Request.Quantity, command.ProductId, item.OnHand);

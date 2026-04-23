@@ -1,3 +1,4 @@
+using Inventory.Application.Abstractions;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,7 @@ using Shared.Core.Domain;
 namespace Inventory.Infrastructure.Data;
 
 public class InventoryDbContext(DbContextOptions<InventoryDbContext> options, TimeProvider timeProvider)
-    : DbContext(options)
+    : DbContext(options), IInventoryDbContext
 {
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
