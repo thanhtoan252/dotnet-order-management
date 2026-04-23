@@ -1,7 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
 using Order.Domain;
-using Order.Domain.Repositories;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
@@ -18,15 +19,14 @@ public record CancelOrderCommand(Guid OrderId, string Reason, string CancelledBy
 ///     so Catalog Service can restore stock.
 /// </summary>
 public class CancelOrderHandler(
-    IOrderRepository orderRepo,
-    IUnitOfWork uow,
+    IOrderDbContext db,
     IEventBus eventBus,
     ILogger<CancelOrderHandler> logger)
     : ICommandHandler<CancelOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(CancelOrderCommand command, CancellationToken ct)
     {
-        var order = await orderRepo.GetByIdWithItemsAsync(command.OrderId, ct);
+        var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
         if (order is null)
         {
             return DomainErrors.Order.NotFound(command.OrderId);
@@ -49,7 +49,7 @@ public class CancelOrderHandler(
 
         await eventBus.PublishAsync(integrationEvent, Topics.OrderCancelled, order.Id.ToString(), ct);
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} cancelled by {User}. Reason: {Reason}",
             order.OrderNumber, command.CancelledBy, command.Reason);

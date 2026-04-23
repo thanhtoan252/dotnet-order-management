@@ -1,6 +1,6 @@
+using Catalog.Application.Abstractions;
 using Catalog.Application.Products.Mappers;
 using Catalog.Domain.Entities;
-using Catalog.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -15,8 +15,7 @@ public record CreateProductCommand(CreateProductRequest Request)
     : ICommand<Result<ProductResponse>>;
 
 public class CreateProductHandler(
-    IProductRepository productRepo,
-    IUnitOfWork uow,
+    ICatalogDbContext db,
     IEventBus eventBus,
     ILogger<CreateProductHandler> logger)
     : ICommandHandler<CreateProductCommand, Result<ProductResponse>>
@@ -38,7 +37,7 @@ public class CreateProductHandler(
         }
 
         var product = productResult.Value;
-        productRepo.Add(product);
+        db.Products.Add(product);
 
         await eventBus.PublishAsync(
             new ProductCreatedIntegrationEvent(
@@ -52,7 +51,7 @@ public class CreateProductHandler(
             product.Id.ToString(),
             ct);
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Product {Sku} created with Id {Id}.", product.SKU, product.Id);
 

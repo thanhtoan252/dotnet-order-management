@@ -1,7 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
 using Order.Domain;
-using Order.Domain.Repositories;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
 
@@ -10,12 +11,12 @@ namespace Order.Application.Orders.Commands;
 public record ConfirmOrderCommand(Guid OrderId, string ConfirmedBy)
     : ICommand<Result<OrderResponse>>;
 
-public class ConfirmOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, ILogger<ConfirmOrderHandler> logger)
+public class ConfirmOrderHandler(IOrderDbContext db, ILogger<ConfirmOrderHandler> logger)
     : ICommandHandler<ConfirmOrderCommand, Result<OrderResponse>>
 {
     public async Task<Result<OrderResponse>> HandleAsync(ConfirmOrderCommand command, CancellationToken ct)
     {
-        var order = await orderRepo.GetByIdWithItemsAsync(command.OrderId, ct);
+        var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
         if (order is null)
         {
             return DomainErrors.Order.NotFound(command.OrderId);
@@ -27,7 +28,7 @@ public class ConfirmOrderHandler(IOrderRepository orderRepo, IUnitOfWork uow, IL
             return result.Error;
         }
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Order {OrderNumber} confirmed by {User}.", order.OrderNumber, command.ConfirmedBy);
 

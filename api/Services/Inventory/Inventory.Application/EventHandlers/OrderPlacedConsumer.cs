@@ -1,5 +1,6 @@
+using Inventory.Application.Abstractions;
 using Inventory.Domain;
-using Inventory.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -9,8 +10,7 @@ using Shared.Messaging.Abstractions;
 namespace Inventory.Application.EventHandlers;
 
 public class OrderPlacedConsumer(
-    IInventoryRepository inventoryRepo,
-    IUnitOfWork uow,
+    IInventoryDbContext db,
     IEventBus eventBus,
     ILogger<OrderPlacedConsumer> logger)
     : IEventConsumer<OrderPlacedIntegrationEvent>
@@ -21,7 +21,9 @@ public class OrderPlacedConsumer(
             @event.OrderId, @event.OrderNumber);
 
         var productIds = @event.Items.Select(i => i.ProductId).ToList();
-        var items = await inventoryRepo.GetByProductIdsAsync(productIds, ct);
+        var items = await db.InventoryItems
+            .Where(i => productIds.Contains(i.ProductId))
+            .ToListAsync(ct);
         var itemMap = items.ToDictionary(i => i.ProductId);
 
         // Phase 1 — validate every line before mutating any entity. Publishing a
@@ -67,7 +69,7 @@ public class OrderPlacedConsumer(
             @event.OrderId.ToString(),
             ct);
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Inventory reserved for order {OrderId}", @event.OrderId);
     }
@@ -82,6 +84,6 @@ public class OrderPlacedConsumer(
             orderId.ToString(),
             ct);
 
-        await uow.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 }

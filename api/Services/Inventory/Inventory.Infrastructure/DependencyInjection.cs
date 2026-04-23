@@ -1,15 +1,12 @@
+using Inventory.Application.Abstractions;
 using Inventory.Application.EventHandlers;
-using Inventory.Domain.Repositories;
 using Inventory.Infrastructure.Data;
 using Inventory.Infrastructure.Outbox;
-using Inventory.Infrastructure.Persistence;
-using Inventory.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
-using Shared.Core.CQRS;
 using Shared.Messaging;
 using Shared.Messaging.Abstractions;
 
@@ -30,8 +27,7 @@ public static class DependencyInjection
                 }));
 
         services.AddSingleton(TimeProvider.System);
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IInventoryDbContext>(sp => sp.GetRequiredService<InventoryDbContext>());
 
         services.AddScoped<IOutboxStore, OutboxStore>();
         services.AddScoped<IIdempotencyStore>(sp => sp.GetRequiredService<IOutboxStore>() as IIdempotencyStore

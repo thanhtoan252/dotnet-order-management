@@ -1,5 +1,6 @@
+using Inventory.Application.Abstractions;
 using Inventory.Domain;
-using Inventory.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Shared.Contracts;
 using Shared.Core.CQRS;
 
@@ -8,13 +9,15 @@ namespace Inventory.Application.Items.Queries;
 public record CheckAvailabilityQuery(IReadOnlyList<StockCheckItem> Items)
     : IQuery<StockCheckResponse>;
 
-public sealed class CheckAvailabilityHandler(IInventoryRepository repo)
+public sealed class CheckAvailabilityHandler(IInventoryDbContext db)
     : IQueryHandler<CheckAvailabilityQuery, StockCheckResponse>
 {
     public async Task<StockCheckResponse> HandleAsync(CheckAvailabilityQuery query, CancellationToken ct)
     {
         var productIds = query.Items.Select(i => i.ProductId).ToList();
-        var items = await repo.GetByProductIdsAsync(productIds, ct);
+        var items = await db.InventoryItems
+            .Where(i => productIds.Contains(i.ProductId))
+            .ToListAsync(ct);
         var byProduct = items.ToDictionary(i => i.ProductId);
 
         var failures = new List<StockCheckFailure>();
