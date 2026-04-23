@@ -16,6 +16,7 @@
         <Project Path="Services/Order/Order.Infrastructure/Order.Infrastructure.csproj" />
         <Project Path="Services/Order/Order.Api/Order.Api.csproj" />
         <Project Path="Services/Order/Order.MigrationRunner/Order.MigrationRunner.csproj" />
+        <Project Path="Services/Order/Order.UnitTests/Order.UnitTests.csproj" />
     </Folder>
     <Folder Name="/Services/" />
     <Folder Name="/Services/Catalog/">
