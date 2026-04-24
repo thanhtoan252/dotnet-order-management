@@ -10,7 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Catalog.Domain\Catalog.Domain.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Shared.Messaging\Shared.Messaging.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Shared.Messaging.Abstractions\Shared.Messaging.Abstractions.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -8,6 +8,7 @@
         <Project Path="Shared/Shared.Core/Shared.Core.csproj" />
         <Project Path="Shared/Shared.Contracts/Shared.Contracts.csproj" />
         <Project Path="Shared/Shared.Messaging/Shared.Messaging.csproj" />
+        <Project Path="Shared/Shared.Messaging.Abstractions/Shared.Messaging.Abstractions.csproj" />
         <Project Path="Shared/Shared.Web/Shared.Web.csproj" />
     </Folder>
     <Folder Name="/Services/Order/">

@@ -18,6 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Shared.Contracts\Shared.Contracts.csproj"/>
+        <ProjectReference Include="..\Shared.Messaging.Abstractions\Shared.Messaging.Abstractions.csproj"/>
     </ItemGroup>
 
 </Project>

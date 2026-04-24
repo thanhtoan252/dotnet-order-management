@@ -10,14 +10,13 @@
     <ItemGroup>
         <ProjectReference Include="..\Order.Domain\Order.Domain.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Shared.Messaging\Shared.Messaging.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Shared.Messaging.Abstractions\Shared.Messaging.Abstractions.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-        <PackageReference Include="Refit.HttpClientFactory"/>
         <PackageReference Include="NSwag.ApiDescription.Client">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>

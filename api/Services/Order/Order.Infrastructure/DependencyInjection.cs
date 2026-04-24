@@ -6,6 +6,7 @@ using Order.Application.EventHandlers;
 using Order.Application.Services;
 using Order.Infrastructure.Data;
 using Order.Infrastructure.Outbox;
+using Order.Infrastructure.Services;
 using Refit;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -41,9 +42,10 @@ public static class DependencyInjection
         // Inventory Service Refit client (sync availability check via API Gateway)
         var gatewayBaseUrl = configuration["ApiGateway:BaseUrl"]
             ?? throw new InvalidOperationException("ApiGateway:BaseUrl is not configured.");
-        services.AddRefitClient<IInventoryService>()
+        services.AddRefitClient<IInventoryRefitApi>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(gatewayBaseUrl))
             .AddStandardResilienceHandler();
+        services.AddScoped<IInventoryService, InventoryServiceClient>();
 
         // Kafka messaging
         services.AddMessaging(configuration);
