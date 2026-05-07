@@ -11,6 +11,7 @@ COPY OrderManagement.slnx .
 # Copy project files for restore
 COPY Shared/Shared.Core/Shared.Core.csproj Shared/Shared.Core/
 COPY Shared/Shared.Contracts/Shared.Contracts.csproj Shared/Shared.Contracts/
+COPY Shared/Shared.Messaging.Abstractions/Shared.Messaging.Abstractions.csproj Shared/Shared.Messaging.Abstractions/
 COPY Shared/Shared.Messaging/Shared.Messaging.csproj Shared/Shared.Messaging/
 COPY Services/Order/Order.Domain/Order.Domain.csproj Services/Order/Order.Domain/
 COPY Services/Order/Order.Application/Order.Application.csproj Services/Order/Order.Application/

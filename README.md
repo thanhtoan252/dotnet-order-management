@@ -181,9 +181,10 @@ api/
 
 docker-compose/
 ├── docker-compose.yml
-├── keycloak/
-│   └── realm-import.json                 # Auto-imported on first startup
 └── .env
+
+keycloak/
+└── realm-export.json                     # Auto-imported on first startup
 
 ui/                                       # React 19 frontend
 ├── src/
@@ -323,7 +324,7 @@ JWT Bearer tokens are validated against Keycloak at the API Gateway and forwarde
 | `product:create`, `product:update`, `product:delete` | Product |
 | `inventory:adjust` | Inventory |
 
-The `order-management` realm is auto-imported from `docker-compose/keycloak/realm-import.json` on first startup. Pre-configured users:
+The `order-management` realm is auto-imported from `keycloak/realm-export.json` on first startup. Pre-configured users:
 
 | User | Password | Role |
 |---|---|---|

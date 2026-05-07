@@ -79,6 +79,32 @@
       ]
     },
     {
+      "clientId": "order-management-api",
+      "name": "Order Management Gateway (ROPC)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "attributes": {
+        "access.token.lifespan": "3600"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
       "clientId": "order-api",
       "name": "Order Management API",
       "enabled": true,
@@ -201,6 +227,19 @@
           }
         ]
       }
+    },
+    {
+      "clientId": "identity-api",
+      "name": "Identity Management API",
+      "description": "Backend service that proxies the Keycloak Admin API for in-app user management.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "identity-api-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
     }
   ],
   "users": [
@@ -240,6 +279,20 @@
       "realmRoles": [
         "user"
       ]
+    },
+    {
+      "username": "service-account-identity-api",
+      "enabled": true,
+      "serviceAccountClientId": "identity-api",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm",
+          "manage-realm"
+        ]
+      }
     }
   ]
 }
