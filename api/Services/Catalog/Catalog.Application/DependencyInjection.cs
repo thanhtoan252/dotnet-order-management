@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<ICommandHandler<ProductCmd.CreateProductCommand, Result<ProductCmd.ProductResponse>>, ProductCmd.CreateProductHandler>();
         services.AddScoped<ICommandHandler<ProductCmd.UpdateProductCommand, Result<ProductCmd.ProductResponse>>, ProductCmd.UpdateProductHandler>();
         services.AddScoped<ICommandHandler<ProductCmd.DeleteProductCommand, Result>, ProductCmd.DeleteProductHandler>();
+        services.AddScoped<ICommandHandler<ProductCmd.ImportProductsCommand, Result<ProductCmd.ImportProductsResponse>>, ProductCmd.ImportProductsHandler>();
 
         // Product query handlers
         services.AddScoped<IQueryHandler<ProductQry.GetAllProductsQuery, IReadOnlyList<ProductQry.ProductResponse>>, ProductQry.GetAllProductsHandler>();

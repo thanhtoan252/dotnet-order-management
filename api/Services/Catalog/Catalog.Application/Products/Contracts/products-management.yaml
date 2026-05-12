@@ -38,6 +38,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+  /api/products/import:
+    post:
+      tags: [ Products ]
+      operationId: ImportProducts
+      summary: Bulk import products from an .xlsx file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ file ]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Products imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportProductsResponse"
+        "400":
+          description: Validation error (file gate or row-level errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "413":
+          description: File exceeds 5 MB limit
+
   /api/products/{id}:
     put:
       tags: [ Products ]
@@ -154,6 +186,17 @@ components:
           format: decimal
         currency:
           type: string
+
+    ImportProductsResponse:
+      type: object
+      required: [ importedCount, products ]
+      properties:
+        importedCount:
+          type: integer
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductResponse"
 
     ProblemDetails:
       type: object

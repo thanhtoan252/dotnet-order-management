@@ -1,6 +1,11 @@
 import { apiClient } from '../../../lib/api';
 import type { Product, CreateProductRequest, UpdateProductRequest } from '../types';
 
+export interface ImportProductsResponse {
+  importedCount: number;
+  products: Product[];
+}
+
 export const fetchProductsApi = async (): Promise<Product[]> => {
   const { data } = await apiClient.get<Product[]>('/products');
   return data;
@@ -18,4 +23,11 @@ export const updateProductApi = async (id: string, req: UpdateProductRequest): P
 
 export const deleteProductApi = async (id: string): Promise<void> => {
   await apiClient.delete(`/products/${id}`);
+};
+
+export const importProductsApi = async (file: File): Promise<ImportProductsResponse> => {
+  const fd = new FormData();
+  fd.append('file', file);
+  const { data } = await apiClient.post<ImportProductsResponse>('/products/import', fd);
+  return data;
 };

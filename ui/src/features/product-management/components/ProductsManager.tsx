@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Upload } from 'lucide-react';
 import { useProductsManager } from '../hooks/useProductsManager';
 import { usePermissions } from '../../auth/usePermissions';
 import { ProductsTable } from './ProductsTable';
 import { CreateProductModal } from './CreateProductModal';
 import { EditProductModal } from './EditProductModal';
 import { DeleteProductModal } from './DeleteProductModal';
+import { ImportProductsModal } from './ImportProductsModal';
 import type { Product } from '../types';
 
 export const ProductsManager = () => {
-  const { products, loading, refresh, createProduct, updateProduct, deleteProduct } = useProductsManager();
+  const { products, loading, refresh, createProduct, updateProduct, deleteProduct, importProducts } = useProductsManager();
   const { canManageProducts } = usePermissions();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -41,13 +43,22 @@ export const ProductsManager = () => {
             Refresh
           </button>
           {canManageProducts && (
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Product
-            </button>
+            <>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                <Upload className="w-4 h-4" />
+                Import .xlsx
+              </button>
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Product
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -67,6 +78,14 @@ export const ProductsManager = () => {
           loading={loading}
           onClose={() => setCreateOpen(false)}
           onSubmit={createProduct}
+        />
+      )}
+
+      {importOpen && (
+        <ImportProductsModal
+          loading={loading}
+          onClose={() => setImportOpen(false)}
+          onImport={importProducts}
         />
       )}
 

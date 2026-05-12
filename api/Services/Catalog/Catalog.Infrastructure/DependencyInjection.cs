@@ -1,5 +1,6 @@
 using Catalog.Application.Abstractions;
 using Catalog.Infrastructure.Data;
+using Catalog.Infrastructure.Excel;
 using Catalog.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,7 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ICatalogDbContext>(sp => sp.GetRequiredService<CatalogDbContext>());
+        services.AddSingleton<IProductExcelParser, ProductExcelParser>();
 
         // Outbox pattern (per-service)
         services.AddScoped<IOutboxStore, OutboxStore>();
