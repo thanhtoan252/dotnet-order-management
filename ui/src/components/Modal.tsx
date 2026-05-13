@@ -1,13 +1,25 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { X } from 'lucide-react';
 
+type ModalSize = 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+
 interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  size?: ModalSize;
 }
 
-export function Modal({ title, onClose, children }: ModalProps) {
+const sizeClass: Record<ModalSize, string> = {
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+};
+
+export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
   const titleId = useId();
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const dragging = useRef(false);
@@ -49,7 +61,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
       aria-labelledby={titleId}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200"
+        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClass[size]} border border-slate-200`}
         style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
       >
         <div

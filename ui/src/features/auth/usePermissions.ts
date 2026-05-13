@@ -8,5 +8,6 @@ export function usePermissions() {
     canManageProducts: isAdmin,
     canManageOrders: isAdmin,
     canManageInventory: isAdmin,
+    canManageUsers: isAdmin,
   };
 }

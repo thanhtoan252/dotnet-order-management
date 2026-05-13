@@ -34,6 +34,8 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <!-- Scalar -->
     <PackageVersion Include="Scalar.AspNetCore" Version="2.13.13" />
+    <!-- ClosedXML (Excel parsing) -->
+    <PackageVersion Include="ClosedXML" Version="0.105.0" />
     <!-- Serilog -->
     <PackageVersion Include="Serilog" Version="4.2.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />

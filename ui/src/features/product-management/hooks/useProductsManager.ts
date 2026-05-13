@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '../../../lib/api';
 import type { Product, CreateProductRequest, UpdateProductRequest } from '../types';
-import { fetchProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../api';
+import { fetchProductsApi, createProductApi, updateProductApi, deleteProductApi, importProductsApi } from '../api';
 
 export const useProductsManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,5 +73,24 @@ export const useProductsManager = () => {
     }
   };
 
-  return { products, loading, error, refresh, createProduct, updateProduct, deleteProduct };
+  const importProducts = async (file: File): Promise<Record<string, string[]> | null> => {
+    setLoading(true);
+    try {
+      const r = await importProductsApi(file);
+      await refresh();
+      toast.success(`Imported ${r.importedCount} product${r.importedCount !== 1 ? 's' : ''}`);
+      return null;
+    } catch (e) {
+      if (e instanceof ApiError && e.problems?.errors) {
+        return e.problems.errors;
+      }
+      const msg = e instanceof ApiError ? e.detail : 'Import failed.';
+      toast.error(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { products, loading, error, refresh, createProduct, updateProduct, deleteProduct, importProducts };
 };

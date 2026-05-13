@@ -215,6 +215,28 @@ services:
       - ./logs/inventory:/app/logs
     restart: unless-stopped
 
+  # ─── Identity Service ───────────────────────────────────────────────────────
+  identity-api:
+    build:
+      context: ../api
+      dockerfile: Services/Identity/Identity.Api/Dockerfile
+    container_name: identity-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      Keycloak__Authority: "http://keycloak:8080/realms/order-management"
+      Keycloak__AdminBaseUrl: "http://keycloak:8080"
+      Keycloak__Realm: "order-management"
+      Keycloak__AdminClientId: "identity-api"
+      Keycloak__AdminClientSecret: "${IDENTITY_API_CLIENT_SECRET:-identity-api-secret}"
+    ports:
+      - "8084:8080"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./logs/identity:/app/logs
+    restart: unless-stopped
+
   # ─── API Gateway (YARP) ─────────────────────────────────────────────────────
   api-gateway:
     build:
@@ -228,6 +250,7 @@ services:
       ReverseProxy__Clusters__order-cluster__Destinations__order-api__Address: "http://order-api:8080"
       ReverseProxy__Clusters__catalog-cluster__Destinations__catalog-api__Address: "http://catalog-api:8080"
       ReverseProxy__Clusters__inventory-cluster__Destinations__inventory-api__Address: "http://inventory-api:8080"
+      ReverseProxy__Clusters__identity-cluster__Destinations__identity-api__Address: "http://identity-api:8080"
     ports:
       - "8080:8080"
     depends_on:
@@ -236,6 +259,8 @@ services:
       catalog-api:
         condition: service_started
       inventory-api:
+        condition: service_started
+      identity-api:
         condition: service_started
       keycloak:
         condition: service_healthy
@@ -287,7 +312,7 @@ services:
     ports:
       - "8180:8080"
     volumes:
-      - ./keycloak/realm-import.json:/opt/keycloak/data/import/realm-import.json:ro
+      - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-import.json:ro
     depends_on:
       keycloak-db:
         condition: service_healthy

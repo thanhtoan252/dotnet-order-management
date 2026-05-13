@@ -3,6 +3,7 @@ using Catalog.Infrastructure;
 using Catalog.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Formatting.Json;
@@ -37,6 +38,7 @@ internal static class ServiceExtensions
             .AddApplication()
             .AddInfrastructure(configuration);
 
+        services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 5 * 1024 * 1024);
         services.AddValidatorsFromAssemblyContaining<Program>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();

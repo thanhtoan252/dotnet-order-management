@@ -28,7 +28,7 @@
                           Namespace="Catalog.Application.Products.Commands"
                           OutputPath="Products/Commands/ProductCommandsGenerated.g.cs"
                           CodeGenerator="NSwagCSharp">
-            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails,ImportProductsResponse</Options>
         </OpenApiReference>
 
         <OpenApiReference Include="Products/Contracts/product-query.yaml"

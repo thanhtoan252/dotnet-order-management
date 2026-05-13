@@ -1,19 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Package, ShoppingBag, Boxes, Menu, ChevronLeft, LayoutGrid, User, LogOut } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Package, ShoppingBag, Boxes, Menu, ChevronLeft, LayoutGrid, User, LogOut, Users } from 'lucide-react';
 import { useAuth } from './features/auth/useAuth';
+import { usePermissions } from './features/auth/usePermissions';
 import { ProductsManager } from './features/product-management/components/ProductsManager';
 import { OrdersManager } from './features/order-management/components/OrdersManager';
 import { InventoryManager } from './features/inventory-management/components/InventoryManager';
+import { UsersManager } from './features/user-management/components/UsersManager';
 import './App.css';
 
-type Page = 'products' | 'orders' | 'inventory';
+type Page = 'products' | 'orders' | 'inventory' | 'users';
 
-const VALID_PAGES: Page[] = ['products', 'orders', 'inventory'];
+const VALID_PAGES: Page[] = ['products', 'orders', 'inventory', 'users'];
 
-const navItems: { id: Page; label: string; icon: React.ElementType; description: string }[] = [
+interface NavItem {
+  id: Page;
+  label: string;
+  icon: React.ElementType;
+  description: string;
+  adminOnly?: boolean;
+}
+
+const allNavItems: NavItem[] = [
   { id: 'products', label: 'Products', icon: Package, description: 'Manage product catalog' },
   { id: 'orders', label: 'Orders', icon: ShoppingBag, description: 'View and manage orders' },
   { id: 'inventory', label: 'Inventory', icon: Boxes, description: 'Track on-hand and reserved stock' },
+  { id: 'users', label: 'Users', icon: Users, description: 'Manage Keycloak users (admin only)', adminOnly: true },
 ];
 
 function getPageFromHash(): Page {
@@ -23,12 +34,25 @@ function getPageFromHash(): Page {
 
 function App() {
   const [page, setPage] = useState<Page>(getPageFromHash);
+  const { username, logout } = useAuth();
+  const { canManageUsers } = usePermissions();
+
+  const navItems = useMemo(
+    () => allNavItems.filter(n => !n.adminOnly || canManageUsers),
+    [canManageUsers],
+  );
 
   useEffect(() => {
     const onHashChange = () => setPage(getPageFromHash());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    if (!navItems.some(n => n.id === page)) {
+      queueMicrotask(() => { window.location.hash = 'products'; });
+    }
+  }, [page, navItems]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,9 +62,8 @@ function App() {
     // Defer hash update so it's not a direct render-time side effect
     queueMicrotask(() => { window.location.hash = id; });
   };
-  const { username, logout } = useAuth();
 
-  const current = navItems.find(n => n.id === page)!;
+  const current = navItems.find(n => n.id === page) ?? navItems[0];
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -163,6 +186,7 @@ function App() {
           {page === 'products' && <ProductsManager />}
           {page === 'orders' && <OrdersManager />}
           {page === 'inventory' && <InventoryManager />}
+          {page === 'users' && <UsersManager />}
         </main>
       </div>
     </div>

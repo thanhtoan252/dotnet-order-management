@@ -16,7 +16,8 @@ export async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  if (body != null) {
+  const isFormData = body instanceof FormData;
+  if (body != null && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
 
@@ -27,7 +28,7 @@ export async function request<T>(
     const response = await fetch(buildUrl(url, params), {
       method,
       headers,
-      body: body != null ? JSON.stringify(body) : undefined,
+      body: body == null ? undefined : isFormData ? body : JSON.stringify(body),
       signal: controller.signal,
     });
 
