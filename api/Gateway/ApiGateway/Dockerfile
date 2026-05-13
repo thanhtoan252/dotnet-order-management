@@ -10,6 +10,7 @@ COPY Directory.Packages.props .
 COPY OrderManagement.slnx .
 
 # Copy project files for restore
+COPY Shared/Shared.Observability/Shared.Observability.csproj Shared/Shared.Observability/
 COPY Gateway/ApiGateway/ApiGateway.csproj Gateway/ApiGateway/
 
 RUN dotnet restore Gateway/ApiGateway/ApiGateway.csproj

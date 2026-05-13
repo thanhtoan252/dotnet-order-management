@@ -1,5 +1,6 @@
 using Identity.Api.Extensions;
 using Serilog;
+using Shared.Observability;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -8,10 +9,9 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting Identity API...");
-
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.AddSerilog();
+    builder.AddObservability("identity-api");
 
     builder.Services
         .AddApplicationServices(builder.Configuration)

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Messaging.Abstractions;
+using Shared.Messaging.Diagnostics;
 
 namespace Shared.Messaging.Kafka;
 
@@ -60,6 +63,20 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
                     continue;
                 }
 
+                var parentContext = ExtractParentContext(result.Message.Headers);
+
+                using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
+                    $"{_topic} receive",
+                    ActivityKind.Consumer,
+                    parentContext);
+
+                activity?.SetTag("messaging.system", "kafka");
+                activity?.SetTag("messaging.destination.name", _topic);
+                activity?.SetTag("messaging.operation", "receive");
+                activity?.SetTag("messaging.kafka.consumer.group", _options.GroupId);
+                activity?.SetTag("messaging.kafka.destination.partition", result.Partition.Value);
+                activity?.SetTag("messaging.kafka.message.offset", result.Offset.Value);
+
                 var @event = JsonSerializer.Deserialize<TEvent>(result.Message.Value);
                 if (@event is null)
                 {
@@ -89,6 +106,7 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
                 }
                 else
                 {
+                    activity?.SetStatus(ActivityStatusCode.Error, "Max retries exceeded");
                     await PublishToDeadLetterAsync(result.Message, stoppingToken);
                     _logger.LogError(
                         "Message {EventId} from {Topic} moved to dead-letter topic after {MaxRetries} failed attempts",
@@ -111,6 +129,35 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
+    }
+
+    private static ActivityContext ExtractParentContext(Headers? headers)
+    {
+        if (headers is null)
+        {
+            return default;
+        }
+
+        string? traceparent = null;
+        string? tracestate = null;
+        foreach (var h in headers)
+        {
+            if (h.Key == "traceparent")
+            {
+                traceparent = Encoding.UTF8.GetString(h.GetValueBytes());
+            }
+            else if (h.Key == "tracestate")
+            {
+                tracestate = Encoding.UTF8.GetString(h.GetValueBytes());
+            }
+        }
+
+        if (string.IsNullOrEmpty(traceparent))
+        {
+            return default;
+        }
+
+        return ActivityContext.TryParse(traceparent, tracestate, out var parsed) ? parsed : default;
     }
 
     private async Task<bool> TryHandleWithRetryAsync(TEvent @event, CancellationToken ct)
@@ -145,6 +192,15 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
     {
         var dlqTopic = $"{_options.DeadLetterTopicPrefix}{_topic}";
 
+        using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
+            $"{dlqTopic} publish",
+            ActivityKind.Producer);
+
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination.name", dlqTopic);
+        activity?.SetTag("messaging.operation", "publish");
+        activity?.SetTag("messaging.kafka.dlq.original_topic", _topic);
+
         var producerConfig = new ProducerConfig
         {
             BootstrapServers = _options.BootstrapServers,
@@ -160,11 +216,37 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
             Headers = originalMessage.Headers ?? new Headers()
         };
 
-        dlqMessage.Headers.Add("x-original-topic", System.Text.Encoding.UTF8.GetBytes(_topic));
-        dlqMessage.Headers.Add("x-failure-timestamp", System.Text.Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("O")));
+        dlqMessage.Headers.Add("x-original-topic", Encoding.UTF8.GetBytes(_topic));
+        dlqMessage.Headers.Add("x-failure-timestamp", Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("O")));
 
-        await producer.ProduceAsync(dlqTopic, dlqMessage, ct);
+        // Refresh trace-context headers on the DLQ message so consumers of the DLQ stay linked.
+        if (activity is not null)
+        {
+            ReplaceHeader(dlqMessage.Headers, "traceparent", activity.Id ?? string.Empty);
+            if (!string.IsNullOrEmpty(activity.TraceStateString))
+            {
+                ReplaceHeader(dlqMessage.Headers, "tracestate", activity.TraceStateString);
+            }
+        }
+
+        try
+        {
+            var result = await producer.ProduceAsync(dlqTopic, dlqMessage, ct);
+            activity?.SetTag("messaging.kafka.destination.partition", result.Partition.Value);
+            activity?.SetTag("messaging.kafka.message.offset", result.Offset.Value);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
 
         _logger.LogInformation("Published failed message to dead-letter topic {DlqTopic}", dlqTopic);
+    }
+
+    private static void ReplaceHeader(Headers headers, string key, string value)
+    {
+        headers.Remove(key);
+        headers.Add(key, Encoding.UTF8.GetBytes(value));
     }
 }

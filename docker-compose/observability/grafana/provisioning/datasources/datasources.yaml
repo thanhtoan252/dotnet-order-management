@@ -1,0 +1,76 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: prometheus
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData:
+      timeInterval: 15s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+
+  - name: Loki
+    type: loki
+    access: proxy
+    uid: loki
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"(\w+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+        - datasourceUid: tempo
+          matcherRegex: 'trace_id=(\w+)'
+          name: TraceIDPlain
+          url: '$${__value.raw}'
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    uid: tempo
+    url: http://tempo:3200
+    jsonData:
+      httpMethod: GET
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        tags:
+          - key: service.name
+            value: service_name
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{service_name="$${__span.tags["service.name"]}"} |= "$${__trace.traceId}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        tags:
+          - key: service.name
+            value: service_name
+        queries:
+          - name: 'Request rate'
+            query: 'sum(rate(http_server_request_duration_seconds_count{service_name="$${__tags["service_name"]}"}[1m]))'
+          - name: 'Error rate'
+            query: 'sum(rate(http_server_request_duration_seconds_count{service_name="$${__tags["service_name"]}",http_response_status_code=~"5.."}[1m]))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: loki
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+      spanBar:
+        type: 'Tag'
+        tag: 'http.path'

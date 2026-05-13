@@ -7,45 +7,56 @@
 ![Keycloak](https://img.shields.io/badge/Keycloak-26.0-4D4D4D?logo=keycloak)
 ![Kafka](https://img.shields.io/badge/Kafka-KRaft-231F20?logo=apachekafka)
 
-A showcase project demonstrating production-grade microservices patterns with .NET 10: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, event-driven communication via Apache Kafka, API Gateway (YARP), resilience patterns (retry, circuit breaker, rate limiting), and Keycloak JWT/UMA authorization — all containerized with Docker Compose.
+A showcase project demonstrating production-grade microservices patterns with .NET 10: Clean Architecture, Domain-Driven Design (DDD), CQRS without MediatR, event-driven communication via Apache Kafka, API Gateway (YARP), resilience patterns (retry, circuit breaker, rate limiting), Keycloak JWT/UMA authorization, and full OpenTelemetry observability (traces, metrics, logs) into Grafana/Tempo/Loki/Prometheus — all containerized with Docker Compose.
 
 ---
 
 ## System Architecture
 
 ```
-                               ┌──────────────┐
-                               │   React UI   │
-                               │    :3000     │
-                               └──────┬───────┘
-                                      │
-                               ┌──────▼───────┐
-                               │ API Gateway  │
-                               │ (YARP) :8080 │
-                               │ Rate Limit   │
-                               │ JWT Auth     │
-                               └──┬────┬────┬─┘
-                                  │    │    │
-              ┌───────────────────┘    │    └───────────────────┐
-              │                        │                        │
-      ┌───────▼────────┐      ┌────────▼────────┐      ┌────────▼─────────┐
-      │ Order Service  │      │ Catalog Service │      │Inventory Service │
-      │     :8081      │      │     :8082       │      │      :8083       │
-      └───┬────────┬───┘      └───┬─────────┬───┘      └────┬─────────┬───┘
-          │        │              │         │               │         │
-       ┌──▼────┐   │        ┌─────▼─────┐   │        ┌──────▼──────┐  │
-       │OrderDb│   │        │ CatalogDb │   │        │ InventoryDb │  │
-       └───────┘   │        └───────────┘   │        └─────────────┘  │
-                   │                        │                         │
-                   └────────────┬───────────┴─────────────────────────┘
-                                │
-                       ┌────────▼─────────┐
-                       │  Apache Kafka    │
-                       │   (KRaft mode)   │
-                       └──────────────────┘
+                                       ┌──────────────┐
+                                       │   React UI   │
+                                       │    :3000     │
+                                       └──────┬───────┘
+                                              │
+                                       ┌──────▼───────┐
+                                       │ API Gateway  │
+                                       │ (YARP) :8080 │
+                                       │ Rate Limit   │
+                                       │ JWT Auth     │
+                                       └──┬──┬──┬──┬──┘
+                                          │  │  │  │
+            ┌─────────────────────────────┘  │  │  └───────────────┐
+            │           ┌────────────────────┘  │                  │
+            │           │           ┌───────────┘                  │
+   ┌────────▼─────┐ ┌───▼──────┐ ┌──▼───────────┐ ┌────────────────▼──┐
+   │ Order :8081  │ │Catalog   │ │Inventory     │ │ Identity :8084     │
+   │              │ │  :8082   │ │  :8083       │ │ (Keycloak Admin)   │
+   └──┬─────────┬─┘ └──┬─────┬─┘ └──┬─────────┬─┘ └────────────────────┘
+      │         │      │     │      │         │            │
+   ┌──▼────┐    │  ┌───▼───┐ │   ┌──▼──────┐  │            │
+   │OrderDb│    │  │Catalog│ │   │Inventory│  │            │
+   └───────┘    │  │  Db   │ │   │   Db    │  │            │
+                │  └───────┘ │   └─────────┘  │            │
+                │            │                │            │
+                └────────────┴────┬───────────┴────────────┘
+                                  │                        │
+                         ┌────────▼─────────┐    ┌─────────▼──────┐
+                         │  Apache Kafka    │    │  Keycloak 26   │
+                         │   (KRaft mode)   │    │  + PostgreSQL  │
+                         └──────────────────┘    └────────────────┘
+
+  ┌──────────────────── Observability backplane (all services) ─────────────────────┐
+  │                                                                                 │
+  │   Services → OTLP gRPC :4317 → OpenTelemetry Collector → Tempo  (traces :3200)  │
+  │                                                       → Loki   (logs   :3100)  │
+  │                                                       → Prometheus (metrics)   │
+  │                                                                  ↓              │
+  │                                                              Grafana :3001      │
+  └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Each service owns its own database. Services communicate **only** through Kafka events — no synchronous cross-service HTTP calls.
+Each business service owns its own database. They communicate **only** through Kafka events — no synchronous cross-service HTTP calls. The Identity service is stateless and proxies to the Keycloak Admin API.
 
 ### Bounded Contexts
 
@@ -54,6 +65,7 @@ Each service owns its own database. Services communicate **only** through Kafka 
 | **Order** | Order lifecycle, order items (price/name snapshots) | Stock, product catalog |
 | **Catalog** | Product CRUD (name, SKU, price, description) | Stock |
 | **Inventory** | Stock levels (`OnHand`, `Reserved`, `Available`), reservations | Product master data |
+| **Identity** | Keycloak user/role management (admin operations) | Its own user store — delegates to Keycloak |
 
 `Catalog` publishes product-lifecycle events; `Inventory` consumes them and maintains its own `InventoryItem` projection (name + SKU) so it never calls Catalog synchronously.
 
@@ -100,14 +112,17 @@ Canonical list: `api/Shared/Shared.Contracts/Topics.cs`.
 | Technology | Purpose |
 |---|---|
 | .NET 10 / ASP.NET Core Minimal API | Web framework |
-| Entity Framework Core 10 + SQL Server | ORM + database (per service) |
+| Entity Framework Core 10 + SQL Server | ORM + database (per business service) |
 | Apache Kafka (Confluent.Kafka 2.8) | Event-driven messaging |
 | YARP 2.3 Reverse Proxy | API Gateway |
 | Keycloak 26 (JWT + UMA) | Authentication & authorization |
+| Refit 8 | Typed HTTP client (Identity → Keycloak Admin API) |
 | Microsoft.Extensions.Http.Resilience | Retry + circuit breaker (Polly v8) |
 | ASP.NET Core Rate Limiting | Fixed window, sliding window, concurrency |
 | FluentValidation 12 | Request validation |
-| Serilog 4.2 | Structured logging |
+| ClosedXML 0.105 | `.xlsx` parsing (product bulk import) |
+| OpenTelemetry 1.15 | Distributed tracing, metrics, log export (OTLP gRPC) |
+| Serilog 4.2 | Structured logging + OTLP sink |
 | Scalar | API reference UI (dev only) |
 | NSwag | OpenAPI → C# DTO code generation |
 | Central Package Management | Unified NuGet version control |
@@ -133,6 +148,11 @@ Canonical list: `api/Shared/Shared.Contracts/Topics.cs`.
 | Kafka UI | `provectuslabs/kafka-ui:latest` | 9090 |
 | Keycloak | `quay.io/keycloak/keycloak:26.0` | 8180 |
 | Keycloak DB | `postgres:16-alpine` | internal |
+| OpenTelemetry Collector | `otel/opentelemetry-collector-contrib:0.119.0` | 4317 / 4318 / 8889 |
+| Tempo (traces) | `grafana/tempo:2.6.1` | 3200 |
+| Loki (logs) | `grafana/loki:3.3.2` | 3100 |
+| Prometheus (metrics) | `prom/prometheus:v3.0.1` | 9091 |
+| Grafana (dashboards) | `grafana/grafana:11.4.0` | 3001 |
 
 ---
 
@@ -140,66 +160,96 @@ Canonical list: `api/Shared/Shared.Contracts/Topics.cs`.
 
 ```
 api/
-├── Directory.Packages.props              # Central NuGet version management
-├── OrderManagement.slnx                  # Solution file
+├── Directory.Packages.props                  # Central NuGet version management
+├── OrderManagement.slnx                      # Solution file
 │
 ├── Shared/
-│   ├── Shared.Core/                      # Domain building blocks
-│   │   ├── Domain/                       # BaseEntity, AggregateRoot, Result<T>, Error, IDomainEvent
-│   │   ├── ValueObjects/                 # Money, Address
-│   │   └── CQRS/                         # ICommand, IQuery, IDispatcher, Dispatcher, IUnitOfWork
-│   ├── Shared.Contracts/                 # Integration event schemas + Topics.cs
-│   │   └── IntegrationEvents/            # OrderPlaced, StockReserved, ProductCreated, ...
-│   └── Shared.Messaging/                 # Kafka infrastructure
-│       ├── Abstractions/                 # IEventBus, IEventConsumer<T>
-│       ├── Kafka/                        # KafkaProducer, KafkaConsumerHost, KafkaOptions
-│       ├── Outbox/                       # OutboxMessage, OutboxProcessor, OutboxEventBus
-│       └── Resilience/                   # HttpResilienceExtensions
+│   ├── Shared.Core/                          # Domain building blocks
+│   │   ├── Domain/                           # BaseEntity, AggregateRoot, Result<T>, Error, IDomainEvent
+│   │   ├── ValueObjects/                     # Money, Address
+│   │   └── CQRS/                             # ICommand, IQuery, IDispatcher, Dispatcher, IUnitOfWork
+│   ├── Shared.Contracts/                     # Integration event schemas + Topics.cs
+│   │   └── IntegrationEvents/                # OrderPlaced, StockReserved, ProductCreated, ...
+│   ├── Shared.Messaging.Abstractions/        # IEventBus, IEventConsumer<T>, IIdempotencyStore
+│   ├── Shared.Messaging/                     # Kafka infrastructure
+│   │   ├── Kafka/                            # KafkaProducer, KafkaConsumerHost, KafkaOptions
+│   │   ├── Diagnostics/                      # MessagingDiagnostics (OTel ActivitySource + Meter)
+│   │   ├── Outbox/                           # OutboxMessage, OutboxProcessor, OutboxEventBus
+│   │   └── Resilience/                       # HttpResilienceExtensions
+│   ├── Shared.Observability/                 # AddObservability() — OTLP tracing/metrics/logs setup
+│   └── Shared.Web/                           # GlobalExceptionHandler middleware
 │
 ├── Services/
 │   ├── Order/
-│   │   ├── Order.Domain/                 # OrderAggregate, OrderItem, OrderStatus, domain events
-│   │   ├── Order.Application/            # CQRS handlers, Kafka consumers, OpenAPI contracts
-│   │   ├── Order.Infrastructure/         # OrderDbContext, repositories, Kafka registration
-│   │   ├── Order.Api/                    # Minimal API endpoints, auth, validators
-│   │   └── Order.MigrationRunner/        # Standalone console — applies EF Core migrations in Docker
+│   │   ├── Order.Domain/                     # OrderAggregate, OrderItem, OrderStatus, domain events
+│   │   ├── Order.Application/                # CQRS handlers, Kafka consumers, OpenAPI contracts
+│   │   ├── Order.Infrastructure/             # OrderDbContext, repositories, Kafka registration
+│   │   ├── Order.Api/                        # Minimal API endpoints, auth, validators
+│   │   └── Order.MigrationRunner/            # Standalone console — applies EF Core migrations in Docker
 │   ├── Catalog/
-│   │   ├── Catalog.Domain/               # ProductAggregate (name, SKU, price — no stock)
-│   │   ├── Catalog.Application/          # CQRS handlers, product-lifecycle event publishing
-│   │   ├── Catalog.Infrastructure/       # CatalogDbContext, repositories, Kafka registration
-│   │   ├── Catalog.Api/                  # Minimal API endpoints, auth, validators
-│   │   └── Catalog.MigrationRunner/      # Standalone console — applies EF Core migrations in Docker
-│   └── Inventory/
-│       ├── Inventory.Domain/             # InventoryItem (OnHand, Reserved, Available), stock ops
-│       ├── Inventory.Application/        # CQRS handlers, Kafka consumers for order + catalog events
-│       ├── Inventory.Infrastructure/     # InventoryDbContext, repositories, Kafka registration
-│       ├── Inventory.Api/                # Minimal API endpoints, auth, validators
-│       └── Inventory.MigrationRunner/    # Standalone console — applies EF Core migrations in Docker
+│   │   ├── Catalog.Domain/                   # ProductAggregate (name, SKU, price — no stock)
+│   │   ├── Catalog.Application/              # CQRS handlers, product-lifecycle event publishing, xlsx parser
+│   │   ├── Catalog.Infrastructure/           # CatalogDbContext, repositories, Kafka registration
+│   │   ├── Catalog.Api/                      # Minimal API endpoints, auth, validators
+│   │   └── Catalog.MigrationRunner/          # Standalone console — applies EF Core migrations in Docker
+│   ├── Inventory/
+│   │   ├── Inventory.Domain/                 # InventoryItem (OnHand, Reserved, Available), stock ops
+│   │   ├── Inventory.Application/            # CQRS handlers, Kafka consumers for order + catalog events
+│   │   ├── Inventory.Infrastructure/         # InventoryDbContext, repositories, Kafka registration
+│   │   ├── Inventory.Api/                    # Minimal API endpoints, auth, validators
+│   │   └── Inventory.MigrationRunner/        # Standalone console — applies EF Core migrations in Docker
+│   └── Identity/                             # No Domain layer, no DB — delegates to Keycloak
+│       ├── Identity.Application/             # CQRS handlers, user/role queries & commands, validators
+│       ├── Identity.Infrastructure/          # Refit clients to Keycloak Admin API + token provider
+│       └── Identity.Api/                     # Minimal API endpoints, JWT auth
 │
 └── Gateway/
-    └── ApiGateway/                       # YARP reverse proxy, rate limiting, JWT forwarding
+    └── ApiGateway/                           # YARP reverse proxy, rate limiting, JWT forwarding
 
 docker-compose/
 ├── docker-compose.yml
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+├── keycloak/
+│   └── realm-import.json                 # Auto-imported on first startup
+>>>>>>> Stashed changes
 └── .env
 
 keycloak/
 └── realm-export.json                     # Auto-imported on first startup
 
 ui/                                       # React 19 frontend
+=======
+├── .env
+├── logs/                                     # Bind-mounted per-service log files
+└── observability/
+    ├── otel-collector-config.yaml            # OTLP receivers → Tempo / Loki / Prometheus pipelines
+    ├── tempo-config.yaml                     # Traces storage
+    ├── loki-config.yaml                      # Logs storage
+    ├── prometheus.yml                        # Metrics scrape config
+    └── grafana/provisioning/                 # Datasources + dashboards (auto-loaded)
+
+keycloak/
+└── realm-export.json                         # Auto-imported on first startup
+
+ui/                                           # React 19 frontend
+>>>>>>> Stashed changes
 ├── src/
 │   ├── features/
-│   │   ├── auth/                         # Keycloak login, role-based access
-│   │   ├── order-management/             # Order CRUD, state machine actions
-│   │   └── product-management/           # Product CRUD
-│   ├── components/                       # Shared UI (Modal, ErrorBoundary, Tooltip)
-│   └── lib/api/                          # REST client, error handling
-├── Dockerfile                            # Multi-stage Node → nginx
-├── nginx.conf                            # SPA fallback + API proxy
+│   │   ├── auth/                             # Keycloak login, role-based access, permissions hook
+│   │   ├── order-management/                 # Order CRUD, state machine actions
+│   │   ├── product-management/               # Product CRUD + xlsx import
+│   │   ├── inventory-management/             # Stock levels, receive/adjust actions
+│   │   └── user-management/                  # Admin-only: Keycloak users + role assignment
+│   ├── components/                           # Shared UI (Modal, ErrorBoundary, Tooltip)
+│   └── lib/api/                              # REST client, error handling
+├── Dockerfile                                # Multi-stage Node → nginx
+├── nginx.conf                                # SPA fallback + API proxy
 └── vite.config.ts
 ```
 
-**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`, `Inventory.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start.
+**MigrationRunner projects** (`Order.MigrationRunner`, `Catalog.MigrationRunner`, `Inventory.MigrationRunner`) are standalone console apps that apply EF Core migrations in Docker Compose — they run before the API services start. The **Identity service has no MigrationRunner** because it has no database of its own.
 
 ### Clean Architecture (per service)
 
@@ -208,7 +258,9 @@ ui/                                       # React 19 frontend
 | **Domain** | Aggregates, value objects, domain events, repository interfaces. Pure C# — no framework dependencies |
 | **Application** | CQRS command/query handlers, Kafka event consumers, OpenAPI contracts, NSwag-generated DTOs, mappers |
 | **Infrastructure** | EF Core DbContext, repository implementations, UnitOfWork, Outbox store, Kafka DI registration |
-| **Api** | Minimal API endpoints, Keycloak auth, FluentValidation, exception handling, Serilog |
+| **Api** | Minimal API endpoints, Keycloak auth, FluentValidation, exception handling, Serilog, OpenTelemetry |
+
+The Identity service follows a slimmed variant: no Domain layer (its "aggregate" lives in Keycloak), and Infrastructure contains Refit-based Keycloak Admin API clients instead of an EF Core DbContext.
 
 ---
 
@@ -268,10 +320,10 @@ OpenAPI 3.1 YAML contracts in each service's `Application/Contracts/` are the si
 
 ## Frontend
 
-The React 19 SPA provides a responsive dashboard for managing orders and products. Key design choices:
+The React 19 SPA provides a responsive dashboard for managing orders, products, inventory, and (for admins) Keycloak users. Key design choices:
 
 - **Authentication** — Direct Keycloak login form with JWT stored in localStorage. Bearer tokens are attached to every API request. Role-based UI guards hide actions the user lacks permissions for.
-- **Navigation** — Hash-based routing (`#products`, `#orders`) without a router library
+- **Navigation** — Hash-based routing (`#products`, `#orders`, `#inventory`, `#users`) without a router library. The `#users` route is filtered out of the sidebar for non-admin users.
 - **State management** — React Context + component-level state (no external library)
 - **API layer** — Custom fetch-based REST client with ProblemDetails error handling and 30s timeout
 - **UI** — Responsive sidebar layout (collapsible on desktop, hamburger on mobile), modal-based forms for CRUD operations, color-coded status badges, and toast notifications via Sonner
@@ -280,10 +332,12 @@ The React 19 SPA provides a responsive dashboard for managing orders and product
 
 | Feature | Description |
 |---|---|
-| **Product Management** | List (paginated), create, edit, and delete products (name, SKU, price, currency, description) |
+| **Product Management** | List (paginated), create, edit, delete products, **bulk import from `.xlsx`** |
 | **Order Management** | List (paginated), place order, confirm → ship → deliver lifecycle, cancel with reason, soft-delete |
+| **Inventory Management** | List inventory items, receive stock, adjust on-hand quantity |
+| **User Management** (admin only) | List Keycloak users, create/edit/delete, reset password, assign realm roles |
 | **Real-time Status** | Status badges reflect async saga results (Pending → Confirmed / Cancelled) |
-| **Permission-aware UI** | Action buttons are shown/hidden based on the authenticated user's Keycloak roles |
+| **Permission-aware UI** | Action buttons and entire sections (e.g., Users) are shown/hidden based on Keycloak roles |
 
 ---
 
@@ -316,13 +370,14 @@ For any synchronous outbound HTTP calls (via `Shared.Messaging.Resilience.HttpRe
 
 ## Authentication & Authorization
 
-JWT Bearer tokens are validated against Keycloak at the API Gateway and forwarded to downstream services. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), cached for 30 seconds.
+JWT Bearer tokens are validated against Keycloak at the API Gateway and forwarded to downstream services. Fine-grained permissions use Keycloak UMA (`response_mode=decision`), cached for 30 seconds. The Identity service uses a simpler role-based check.
 
-| Policy | Resource |
-|---|---|
-| `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order |
-| `product:create`, `product:update`, `product:delete` | Product |
-| `inventory:adjust` | Inventory |
+| Policy | Resource | Mechanism |
+|---|---|---|
+| `order:confirm`, `order:ship`, `order:deliver`, `order:delete` | Order | UMA |
+| `product:create`, `product:update`, `product:delete` | Product | UMA |
+| `inventory:adjust` | Inventory | UMA |
+| `identity:manage` | Identity (user/role admin) | Realm role `admin` |
 
 The `order-management` realm is auto-imported from `keycloak/realm-export.json` on first startup. Pre-configured users:
 
@@ -354,6 +409,10 @@ KEYCLOAK_DB_PASSWORD=keycloak
 KEYCLOAK_ADMIN=admin
 KEYCLOAK_ADMIN_PASSWORD=admin
 
+# ─── Identity service → Keycloak Admin API client ────────────────────────────
+# Must match the `identity-api` client secret in keycloak/realm-export.json
+IDENTITY_API_CLIENT_SECRET=identity-api-secret
+
 # ─── ASP.NET Core ────────────────────────────────────────────────────────────
 ASPNETCORE_ENVIRONMENT=Docker-Compose
 ```
@@ -371,7 +430,7 @@ cd docker-compose
 docker compose up --build
 ```
 
-**Startup order:** DB → MigrationRunner (waits for DB healthy) → API service (waits for migration success + Kafka healthy + Keycloak healthy) → Gateway (waits for APIs started) → UI (waits for Gateway).
+**Startup order:** DB → MigrationRunner (waits for DB healthy) → business API service (waits for migration success + Kafka healthy + Keycloak healthy + OTel collector started). The Identity API waits only on Keycloak + OTel collector since it has no DB. Gateway waits for all APIs to start, then UI waits for Gateway.
 
 | Service | URL |
 |---|---|
@@ -380,8 +439,13 @@ docker compose up --build
 | Order Service | http://localhost:8081 |
 | Catalog Service | http://localhost:8082 |
 | Inventory Service | http://localhost:8083 |
+| Identity Service | http://localhost:8084 |
 | Kafka UI | http://localhost:9090 |
 | Keycloak Admin | http://localhost:8180 |
+| Grafana | http://localhost:3001 (admin / admin) |
+| Tempo (traces API) | http://localhost:3200 |
+| Loki (logs API) | http://localhost:3100 |
+| Prometheus | http://localhost:9091 |
 
 ### Run locally (development)
 
@@ -389,7 +453,11 @@ docker compose up --build
 
 ```bash
 cd docker-compose
-docker compose up order-db catalog-db inventory-db kafka kafka-ui keycloak keycloak-db
+docker compose up \
+  order-db catalog-db inventory-db \
+  kafka kafka-ui \
+  keycloak keycloak-db \
+  otel-collector tempo loki prometheus grafana
 ```
 
 **2. Run the services:**
@@ -404,7 +472,10 @@ dotnet run --project api/Services/Catalog/Catalog.Api
 # Terminal 3 — Inventory Service
 dotnet run --project api/Services/Inventory/Inventory.Api
 
-# Terminal 4 — API Gateway
+# Terminal 4 — Identity Service
+dotnet run --project api/Services/Identity/Identity.Api
+
+# Terminal 5 — API Gateway
 dotnet run --project api/Gateway/ApiGateway
 ```
 
@@ -446,6 +517,7 @@ Scalar API docs are available at `/scalar/v1` on each service in Development mod
 |---|---|---|---|
 | `GET` | `/api/products` | List products (paginated) | Bearer |
 | `POST` | `/api/products` | Create product | `product:create` |
+| `POST` | `/api/products/import` | Bulk import products from a `.xlsx` file (≤ 5 MB) | `product:create` |
 | `PUT` | `/api/products/{id}` | Update product | `product:update` |
 | `DELETE` | `/api/products/{id}` | Soft-delete product | `product:delete` |
 
@@ -458,6 +530,21 @@ Scalar API docs are available at `/scalar/v1` on each service in Development mod
 | `POST` | `/api/inventory` | Create inventory item for a product | `inventory:adjust` |
 | `POST` | `/api/inventory/{productId}/receive` | Add quantity to on-hand stock | `inventory:adjust` |
 | `POST` | `/api/inventory/{productId}/adjust` | Set on-hand stock to an absolute quantity | `inventory:adjust` |
+
+### Identity (admin only — realm role `admin`)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/identity/users` | List Keycloak users (search/pagination) |
+| `GET` | `/api/identity/users/count` | Total user count |
+| `GET` | `/api/identity/users/realm-roles` | List all realm roles |
+| `GET` | `/api/identity/users/{id}` | Get user by id (with role mappings) |
+| `GET` | `/api/identity/users/{id}/roles` | Get user's realm role mappings |
+| `POST` | `/api/identity/users` | Create a user |
+| `PUT` | `/api/identity/users/{id}` | Update profile + enabled state |
+| `DELETE` | `/api/identity/users/{id}` | Delete a user |
+| `POST` | `/api/identity/users/{id}/reset-password` | Reset password |
+| `PUT` | `/api/identity/users/{id}/roles` | Replace realm role mappings |
 
 ### Internal (not exposed through the Gateway to external clients)
 
@@ -502,6 +589,28 @@ npm run lint     # ESLint
 
 ---
 
+## Observability
+
+Every API (Order, Catalog, Inventory, Identity, Gateway) calls `builder.AddObservability("<service-name>")` from `Shared.Observability` at startup, which wires up:
+
+- **Traces** — ASP.NET Core, HttpClient, SqlClient, and the custom `Shared.Messaging.Kafka` `ActivitySource` (producer + consumer spans propagate trace context through Kafka headers)
+- **Metrics** — ASP.NET Core, HttpClient, .NET runtime, process counters, and the custom `Shared.Messaging.Kafka` `Meter`
+- **Logs** — Serilog enriched with `TraceId` / `SpanId`, sunk to console, rolling JSON files (`logs/<service>-YYYYMMDD.json`, 7-day retention), and OTLP
+
+All signals are pushed via OTLP gRPC to the OpenTelemetry Collector (`http://otel-collector:4317`), which fans out to:
+
+| Backend | Purpose | Grafana datasource |
+|---|---|---|
+| Tempo | Trace storage / TraceQL | ✓ |
+| Loki | Log storage / LogQL | ✓ |
+| Prometheus | Metrics storage / PromQL | ✓ |
+
+Open Grafana at http://localhost:3001 (admin / admin) — datasources and dashboards are auto-provisioned from `docker-compose/observability/grafana/provisioning/`. Trace IDs surfaced in logs and metrics exemplars link directly back to the corresponding trace in Tempo.
+
+Per-service log files are also bind-mounted to `docker-compose/logs/<service>/` for direct inspection.
+
+---
+
 ## Health Checks
 
 Each service exposes a `/health` endpoint. The API Gateway proxies them:
@@ -512,3 +621,4 @@ Each service exposes a `/health` endpoint. The API Gateway proxies them:
 | `GET /services/order/health` | Order Service |
 | `GET /services/catalog/health` | Catalog Service |
 | `GET /services/inventory/health` | Inventory Service |
+| `GET /services/identity/health` | Identity Service |
