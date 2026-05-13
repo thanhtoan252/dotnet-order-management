@@ -208,19 +208,6 @@ api/
 
 docker-compose/
 ├── docker-compose.yml
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-├── keycloak/
-│   └── realm-import.json                 # Auto-imported on first startup
->>>>>>> Stashed changes
-└── .env
-
-keycloak/
-└── realm-export.json                     # Auto-imported on first startup
-
-ui/                                       # React 19 frontend
-=======
 ├── .env
 ├── logs/                                     # Bind-mounted per-service log files
 └── observability/
@@ -234,7 +221,6 @@ keycloak/
 └── realm-export.json                         # Auto-imported on first startup
 
 ui/                                           # React 19 frontend
->>>>>>> Stashed changes
 ├── src/
 │   ├── features/
 │   │   ├── auth/                             # Keycloak login, role-based access, permissions hook
