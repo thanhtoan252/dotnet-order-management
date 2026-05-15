@@ -14,6 +14,7 @@ COPY Shared/Shared.Core/Shared.Core.csproj Shared/Shared.Core/
 COPY Shared/Shared.Contracts/Shared.Contracts.csproj Shared/Shared.Contracts/
 COPY Shared/Shared.Messaging.Abstractions/Shared.Messaging.Abstractions.csproj Shared/Shared.Messaging.Abstractions/
 COPY Shared/Shared.Messaging/Shared.Messaging.csproj Shared/Shared.Messaging/
+COPY Shared/Shared.Observability/Shared.Observability.csproj Shared/Shared.Observability/
 COPY Shared/Shared.Web/Shared.Web.csproj Shared/Shared.Web/
 COPY Services/Inventory/Inventory.Domain/Inventory.Domain.csproj Services/Inventory/Inventory.Domain/
 COPY Services/Inventory/Inventory.Application/Inventory.Application.csproj Services/Inventory/Inventory.Application/

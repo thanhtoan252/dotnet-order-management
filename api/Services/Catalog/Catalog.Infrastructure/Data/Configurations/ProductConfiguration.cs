@@ -13,7 +13,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.RowVersion).IsRowVersion().IsConcurrencyToken();
         builder.Property(p => p.Name).HasMaxLength(200).IsRequired();
         builder.Property(p => p.SKU).HasMaxLength(50).IsRequired();
-        builder.HasIndex(p => p.SKU).IsUnique();
+        builder.HasIndex(p => p.SKU).IsUnique().HasDatabaseName("IX_Products_SKU").HasFilter("[IsDeleted] = 0");
         builder.Property(p => p.Description).HasMaxLength(1000);
 
         // Owned Money value object

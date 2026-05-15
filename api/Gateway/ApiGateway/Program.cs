@@ -2,8 +2,8 @@ using ApiGateway.Application;
 using ApiGateway.Application.Endpoints;
 using ApiGateway.Infrastructure;
 using ApiGateway.Infrastructure.Cors;
-using ApiGateway.Infrastructure.Logging;
 using Serilog;
+using Shared.Observability;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -15,7 +15,7 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.AddSerilog();
+    builder.AddObservability("api-gateway");
 
     builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
     builder.Services.AddApplication();

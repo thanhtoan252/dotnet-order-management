@@ -6,6 +6,7 @@ WORKDIR /src
 COPY Directory.Packages.props .
 COPY OrderManagement.slnx .
 COPY Shared/Shared.Core/Shared.Core.csproj Shared/Shared.Core/
+COPY Shared/Shared.Observability/Shared.Observability.csproj Shared/Shared.Observability/
 COPY Shared/Shared.Web/Shared.Web.csproj Shared/Shared.Web/
 COPY Services/Identity/Identity.Application/Identity.Application.csproj Services/Identity/Identity.Application/
 COPY Services/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj Services/Identity/Identity.Infrastructure/

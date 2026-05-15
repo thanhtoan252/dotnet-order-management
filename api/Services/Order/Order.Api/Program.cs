@@ -1,5 +1,6 @@
 using Order.Api.Extensions;
 using Serilog;
+using Shared.Observability;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -11,7 +12,7 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.AddSerilog();
+    builder.AddObservability("order-api");
 
     builder.Services
         .AddApplicationServices(builder.Configuration)
