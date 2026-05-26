@@ -8,10 +8,7 @@ namespace Catalog.Infrastructure.Outbox;
 /// <summary>
 ///     Background service that polls the outbox table and publishes pending messages to Kafka.
 /// </summary>
-public class OutboxProcessor(
-    IServiceScopeFactory scopeFactory,
-    KafkaProducer kafkaProducer,
-    ILogger<OutboxProcessor> logger) : BackgroundService
+public class OutboxProcessor(IServiceScopeFactory scopeFactory, KafkaProducer kafkaProducer, ILogger<OutboxProcessor> logger) : BackgroundService
 {
     private const int BatchSize = 50;
     private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(2);
@@ -33,11 +30,7 @@ public class OutboxProcessor(
                 {
                     try
                     {
-                        await kafkaProducer.ProduceAsync(
-                            message.Topic,
-                            message.PartitionKey,
-                            message.Payload,
-                            stoppingToken);
+                        await kafkaProducer.ProduceAsync(message.Topic, message.PartitionKey, message.Payload, stoppingToken);
 
                         await outboxStore.MarkProcessedAsync(message.Id, stoppingToken);
 

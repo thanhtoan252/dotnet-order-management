@@ -17,24 +17,33 @@ public static class DomainErrors
 
         public static Error NotFound(Guid productId)
         {
-            return new Error("InventoryItem.NotFound", $"Inventory for product {productId} not found.");
+            return new Error(
+                "InventoryItem.NotFound",
+                $"Inventory for product {productId} not found.",
+                ErrorType.NotFound);
         }
 
         public static Error AlreadyExists(Guid productId)
         {
-            return new Error("InventoryItem.AlreadyExists", $"Inventory for product {productId} already exists.");
+            return new Error(
+                "InventoryItem.AlreadyExists",
+                $"Inventory for product {productId} already exists.",
+                ErrorType.Conflict);
         }
 
         public static Error InsufficientStock(string productName, int available, int requested)
         {
             return new Error("InventoryItem.InsufficientStock",
-                $"Insufficient stock for '{productName}'. Available: {available}, Requested: {requested}.");
+                $"Insufficient stock for '{productName}'. Available: {available}, Requested: {requested}.",
+                ErrorType.Conflict);
         }
 
         public static Error InsufficientReserved(string productName, int reserved, int requested)
         {
             return new Error("InventoryItem.InsufficientReserved",
-                $"Cannot release/commit more than reserved for '{productName}'. Reserved: {reserved}, Requested: {requested}.");
+                $"Cannot release/commit more than reserved for '{productName}'. " +
+                $"Reserved: {reserved}, Requested: {requested}.",
+                ErrorType.Conflict);
         }
     }
 }

@@ -20,8 +20,15 @@ COPY Services/Order/Order.MigrationRunner/Order.MigrationRunner.csproj Services/
 
 RUN dotnet restore Services/Order/Order.MigrationRunner/Order.MigrationRunner.csproj
 
-# Copy everything and build
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Core/ Shared/Shared.Core/
+COPY Shared/Shared.Contracts/ Shared/Shared.Contracts/
+COPY Shared/Shared.Messaging.Abstractions/ Shared/Shared.Messaging.Abstractions/
+COPY Shared/Shared.Messaging/ Shared/Shared.Messaging/
+COPY Services/Order/Order.Domain/ Services/Order/Order.Domain/
+COPY Services/Order/Order.Application/ Services/Order/Order.Application/
+COPY Services/Order/Order.Infrastructure/ Services/Order/Order.Infrastructure/
+COPY Services/Order/Order.MigrationRunner/ Services/Order/Order.MigrationRunner/
 WORKDIR /build/Services/Order/Order.MigrationRunner
 RUN dotnet publish -c Release -o /app/publish --no-restore
 

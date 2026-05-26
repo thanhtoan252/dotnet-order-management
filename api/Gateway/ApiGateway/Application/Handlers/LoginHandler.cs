@@ -6,18 +6,12 @@ using Refit;
 
 namespace ApiGateway.Application.Handlers;
 
-public sealed class LoginHandler
+public sealed class LoginHandler(
+    IKeycloakClient keycloakClient,
+    IOptions<KeycloakSettings> keycloakOptions,
+    ILogger<LoginHandler> logger)
 {
-    private readonly IKeycloakClient _keycloakClient;
-    private readonly KeycloakSettings _keycloakSettings;
-    private readonly ILogger<LoginHandler> _logger;
-
-    public LoginHandler(IKeycloakClient keycloakClient, IOptions<KeycloakSettings> keycloakOptions, ILogger<LoginHandler> logger)
-    {
-        _keycloakClient = keycloakClient;
-        _keycloakSettings = keycloakOptions.Value;
-        _logger = logger;
-    }
+    private readonly KeycloakSettings _keycloakSettings = keycloakOptions.Value;
 
     public async Task<LoginResponse?> HandleAsync(LoginRequest request, CancellationToken ct)
     {
@@ -31,14 +25,14 @@ public sealed class LoginHandler
 
         try
         {
-            var token = await _keycloakClient.GetTokenAsync(form);
+            var token = await keycloakClient.GetTokenAsync(form);
             var (username, roles) = ExtractClaims(token.AccessToken, request.Username);
 
             return new LoginResponse(token.AccessToken, token.RefreshToken, username, roles, token.ExpiresIn);
         }
         catch (ApiException ex)
         {
-            _logger.LogWarning("Keycloak authentication failed: {StatusCode} {Error}", (int)ex.StatusCode, ex.Content);
+            logger.LogWarning("Keycloak authentication failed: {StatusCode} {Error}", (int)ex.StatusCode, ex.Content);
 
             return null;
         }

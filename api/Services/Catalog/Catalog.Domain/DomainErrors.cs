@@ -8,7 +8,12 @@ public static class DomainErrors
     {
         public static Error NotFound(Guid id)
         {
-            return new Error("Product.NotFound", $"Product {id} not found.");
+            return new Error("Product.NotFound", $"Product {id} not found.", ErrorType.NotFound);
+        }
+
+        public static Error SkuAlreadyExists(string sku)
+        {
+            return new Error("Product.SkuAlreadyExists", $"SKU '{sku}' already exists.", ErrorType.Conflict);
         }
 
         public static readonly Error InvalidName =

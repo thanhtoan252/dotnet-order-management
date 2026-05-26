@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Application.Orders.Models;
 using Order.Domain;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -9,12 +10,12 @@ using Shared.Core.Domain;
 namespace Order.Application.Orders.Commands;
 
 public record ShipOrderCommand(Guid OrderId, string ShippedBy)
-    : ICommand<Result<OrderResponse>>;
+    : ICommand<Result<OrderResult>>;
 
 public class ShipOrderHandler(IOrderDbContext db, ILogger<ShipOrderHandler> logger)
-    : ICommandHandler<ShipOrderCommand, Result<OrderResponse>>
+    : ICommandHandler<ShipOrderCommand, Result<OrderResult>>
 {
-    public async Task<Result<OrderResponse>> HandleAsync(ShipOrderCommand command, CancellationToken ct)
+    public async Task<Result<OrderResult>> HandleAsync(ShipOrderCommand command, CancellationToken ct)
     {
         var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
         if (order is null)
@@ -32,6 +33,6 @@ public class ShipOrderHandler(IOrderDbContext db, ILogger<ShipOrderHandler> logg
 
         logger.LogInformation("Order {OrderNumber} shipped by {User}.", order.OrderNumber, command.ShippedBy);
 
-        return order.ToCommandResponse();
+        return order.ToResult();
     }
 }

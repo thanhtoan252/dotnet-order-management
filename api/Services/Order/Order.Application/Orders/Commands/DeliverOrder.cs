@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Application.Orders.Models;
 using Order.Domain;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -9,12 +10,12 @@ using Shared.Core.Domain;
 namespace Order.Application.Orders.Commands;
 
 public record DeliverOrderCommand(Guid OrderId, string DeliveredBy)
-    : ICommand<Result<OrderResponse>>;
+    : ICommand<Result<OrderResult>>;
 
 public class DeliverOrderHandler(IOrderDbContext db, ILogger<DeliverOrderHandler> logger)
-    : ICommandHandler<DeliverOrderCommand, Result<OrderResponse>>
+    : ICommandHandler<DeliverOrderCommand, Result<OrderResult>>
 {
-    public async Task<Result<OrderResponse>> HandleAsync(DeliverOrderCommand command, CancellationToken ct)
+    public async Task<Result<OrderResult>> HandleAsync(DeliverOrderCommand command, CancellationToken ct)
     {
         var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
         if (order is null)
@@ -30,8 +31,11 @@ public class DeliverOrderHandler(IOrderDbContext db, ILogger<DeliverOrderHandler
 
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Order {OrderNumber} marked as delivered by {User}.", order.OrderNumber, command.DeliveredBy);
+        logger.LogInformation(
+            "Order {OrderNumber} marked as delivered by {User}.",
+            order.OrderNumber,
+            command.DeliveredBy);
 
-        return order.ToCommandResponse();
+        return order.ToResult();
     }
 }

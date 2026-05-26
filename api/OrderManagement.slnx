@@ -39,6 +39,13 @@
         <Project Path="Services/Identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
         <Project Path="Services/Identity/Identity.Api/Identity.Api.csproj" />
     </Folder>
+    <Folder Name="/Services/Notifications/">
+        <Project Path="Services/Notifications/Notifications.Domain/Notifications.Domain.csproj" />
+        <Project Path="Services/Notifications/Notifications.Application/Notifications.Application.csproj" />
+        <Project Path="Services/Notifications/Notifications.Infrastructure/Notifications.Infrastructure.csproj" />
+        <Project Path="Services/Notifications/Notifications.Api/Notifications.Api.csproj" />
+        <Project Path="Services/Notifications/Notifications.MigrationRunner/Notifications.MigrationRunner.csproj" />
+    </Folder>
     <Folder Name="/Gateway/">
         <Project Path="Gateway/ApiGateway/ApiGateway.csproj" />
     </Folder>

@@ -11,7 +11,9 @@ internal static class AuthEndpoints
         {
             var response = await handler.HandleAsync(request, ct);
 
-            return response is null ? Results.Unauthorized() : Results.Ok(response);
+            return response is null 
+                ? Results.Unauthorized() 
+                : Results.Ok(response);
         })
         .AllowAnonymous()
         .RequireCors("CorsPolicy")

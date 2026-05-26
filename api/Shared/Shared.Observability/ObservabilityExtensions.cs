@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,91 +15,125 @@ namespace Shared.Observability;
 
 public static class ObservabilityExtensions
 {
+    private const string ServiceNamespace = "order-management";
+    private const string MessagingActivitySource = "Shared.Messaging.Kafka";
+    private const string DefaultOtlpEndpoint = "http://localhost:4317";
+
     /// <summary>
     ///     Registers OpenTelemetry tracing + metrics + log export, and configures Serilog so every
     ///     log record carries the active TraceId / SpanId. Single entry point for all API projects.
     /// </summary>
     public static WebApplicationBuilder AddObservability(this WebApplicationBuilder builder, string serviceName)
     {
-        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
-                           ?? builder.Configuration["Otel:Endpoint"]
-                           ?? "http://localhost:4317";
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
 
-        var resolvedName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? serviceName;
-        var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var options = ObservabilityOptions.Create(builder, serviceName);
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(rb => rb
-                .AddService(resolvedName, serviceInstanceId: Environment.MachineName)
-                .AddAttributes(new KeyValuePair<string, object>[]
-                {
-                    new("service.namespace", "order-management"),
-                    new("deployment.environment", environmentName)
-                }))
-            .WithTracing(t => t
-                .AddSource("Shared.Messaging.Kafka")
-                .AddAspNetCoreInstrumentation(o =>
-                {
-                    o.RecordException = true;
-                    o.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/health")
-                                   && !ctx.Request.Path.StartsWithSegments("/metrics");
-                })
-                .AddHttpClientInstrumentation(o => o.RecordException = true)
-                .AddSqlClientInstrumentation(o =>
-                {
-                    // db.statement capture is now controlled by the OTEL_DOTNET_EXPERIMENTAL_SQLCLIENT_
-                    // ENABLE_TRACE_DB_STATEMENT_TEXT env var (set in docker-compose for Development).
-                    o.RecordException = true;
-                })
-                .AddOtlpExporter(o =>
-                {
-                    o.Endpoint = new Uri(otlpEndpoint);
-                    o.Protocol = OtlpExportProtocol.Grpc;
-                }))
-            .WithMetrics(m => m
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddProcessInstrumentation()
-                .AddMeter("Shared.Messaging.Kafka")
-                .AddOtlpExporter(o =>
-                {
-                    o.Endpoint = new Uri(otlpEndpoint);
-                    o.Protocol = OtlpExportProtocol.Grpc;
-                }));
+            .ConfigureResource(resource => ConfigureResource(resource, options))
+            .WithTracing(tracing => ConfigureTracing(tracing, options))
+            .WithMetrics(metrics => ConfigureMetrics(metrics, options));
 
-        builder.Host.UseSerilog((ctx, services, cfg) => cfg
-            .ReadFrom.Configuration(ctx.Configuration)
+        builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+            ConfigureSerilog(loggerConfiguration, context, services, options));
+
+        return builder;
+    }
+
+    private static void ConfigureResource(ResourceBuilder resource, ObservabilityOptions options) =>
+        resource
+            .AddService(options.ServiceName, serviceInstanceId: Environment.MachineName)
+            .AddAttributes(new KeyValuePair<string, object>[]
+            {
+                new("service.namespace", ServiceNamespace),
+                new("deployment.environment", options.EnvironmentName)
+            });
+
+    private static void ConfigureTracing(TracerProviderBuilder tracing, ObservabilityOptions options) =>
+        tracing
+            .AddSource(MessagingActivitySource)
+            .AddAspNetCoreInstrumentation(instrumentation =>
+            {
+                instrumentation.RecordException = true;
+                instrumentation.Filter = ShouldTraceHttpRequest;
+            })
+            .AddHttpClientInstrumentation(instrumentation => instrumentation.RecordException = true)
+            .AddSqlClientInstrumentation(instrumentation => instrumentation.RecordException = true)
+            .AddOtlpExporter(exporter => ConfigureOtlpExporter(exporter, options));
+
+    private static void ConfigureMetrics(MeterProviderBuilder metrics, ObservabilityOptions options) =>
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddMeter(MessagingActivitySource)
+            .AddOtlpExporter(exporter => ConfigureOtlpExporter(exporter, options));
+
+    private static void ConfigureOtlpExporter(OtlpExporterOptions exporter, ObservabilityOptions options)
+    {
+        exporter.Endpoint = options.OtlpEndpoint;
+        exporter.Protocol = OtlpExportProtocol.Grpc;
+    }
+
+    private static bool ShouldTraceHttpRequest(HttpContext context) =>
+        !context.Request.Path.StartsWithSegments("/health") &&
+        !context.Request.Path.StartsWithSegments("/metrics");
+
+    private static void ConfigureSerilog(
+        LoggerConfiguration loggerConfiguration,
+        HostBuilderContext context,
+        IServiceProvider services,
+        ObservabilityOptions options)
+    {
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
             .Enrich.WithEnvironmentName()
             .Enrich.WithThreadId()
             .Enrich.WithProcessId()
-            .Enrich.WithProperty("service.name", resolvedName)
+            .Enrich.WithProperty("service.name", options.ServiceName)
             .WriteTo.Console(outputTemplate:
                 "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
             .WriteTo.File(
                 formatter: new JsonFormatter(),
-                path: $"logs/{resolvedName}-.json",
+                path: $"logs/{options.ServiceName}-.json",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7)
-            .WriteTo.OpenTelemetry(opts =>
+            .WriteTo.OpenTelemetry(sinkOptions =>
             {
-                opts.Endpoint = otlpEndpoint;
-                opts.Protocol = OtlpProtocol.Grpc;
-                opts.ResourceAttributes = new Dictionary<string, object>
+                sinkOptions.Endpoint = options.OtlpEndpoint.ToString();
+                sinkOptions.Protocol = OtlpProtocol.Grpc;
+                sinkOptions.ResourceAttributes = new Dictionary<string, object>
                 {
-                    ["service.name"] = resolvedName,
-                    ["service.namespace"] = "order-management",
-                    ["deployment.environment"] = environmentName
+                    ["service.name"] = options.ServiceName,
+                    ["service.namespace"] = ServiceNamespace,
+                    ["deployment.environment"] = options.EnvironmentName
                 };
-                opts.IncludedData =
+                sinkOptions.IncludedData =
                     IncludedData.TraceIdField |
                     IncludedData.SpanIdField |
                     IncludedData.MessageTemplateTextAttribute |
                     IncludedData.MessageTemplateMD5HashAttribute;
-            }));
+            });
+    }
 
-        return builder;
+    private sealed record ObservabilityOptions(
+        string ServiceName,
+        Uri OtlpEndpoint,
+        string EnvironmentName)
+    {
+        public static ObservabilityOptions Create(WebApplicationBuilder builder, string serviceName)
+        {
+            var resolvedServiceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? serviceName;
+            var endpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
+                           ?? builder.Configuration["Otel:Endpoint"]
+                           ?? DefaultOtlpEndpoint;
+
+            return new ObservabilityOptions(
+                resolvedServiceName,
+                new Uri(endpoint, UriKind.Absolute),
+                builder.Environment.EnvironmentName);
+        }
     }
 }

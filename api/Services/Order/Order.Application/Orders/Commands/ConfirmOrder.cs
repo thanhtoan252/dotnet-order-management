@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Application.Orders.Models;
 using Order.Domain;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -9,12 +10,12 @@ using Shared.Core.Domain;
 namespace Order.Application.Orders.Commands;
 
 public record ConfirmOrderCommand(Guid OrderId, string ConfirmedBy)
-    : ICommand<Result<OrderResponse>>;
+    : ICommand<Result<OrderResult>>;
 
 public class ConfirmOrderHandler(IOrderDbContext db, ILogger<ConfirmOrderHandler> logger)
-    : ICommandHandler<ConfirmOrderCommand, Result<OrderResponse>>
+    : ICommandHandler<ConfirmOrderCommand, Result<OrderResult>>
 {
-    public async Task<Result<OrderResponse>> HandleAsync(ConfirmOrderCommand command, CancellationToken ct)
+    public async Task<Result<OrderResult>> HandleAsync(ConfirmOrderCommand command, CancellationToken ct)
     {
         var order = await db.Orders.Include(o => o.Items).SingleOrDefaultAsync(o => o.Id == command.OrderId, ct);
         if (order is null)
@@ -32,6 +33,6 @@ public class ConfirmOrderHandler(IOrderDbContext db, ILogger<ConfirmOrderHandler
 
         logger.LogInformation("Order {OrderNumber} confirmed by {User}.", order.OrderNumber, command.ConfirmedBy);
 
-        return order.ToCommandResponse();
+        return order.ToResult();
     }
 }

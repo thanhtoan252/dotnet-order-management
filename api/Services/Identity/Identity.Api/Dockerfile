@@ -20,8 +20,13 @@ WORKDIR /src
 COPY --from=restore /src . /src/
 COPY --from=restore /root/.nuget /root/.nuget
 
-# Copy remaining source code
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Core/ Shared/Shared.Core/
+COPY Shared/Shared.Observability/ Shared/Shared.Observability/
+COPY Shared/Shared.Web/ Shared/Shared.Web/
+COPY Services/Identity/Identity.Application/ Services/Identity/Identity.Application/
+COPY Services/Identity/Identity.Infrastructure/ Services/Identity/Identity.Infrastructure/
+COPY Services/Identity/Identity.Api/ Services/Identity/Identity.Api/
 
 WORKDIR /src/Services/Identity/Identity.Api
 RUN dotnet publish -c Release -o /app/publish --no-restore

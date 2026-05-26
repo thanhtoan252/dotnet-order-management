@@ -1,6 +1,7 @@
 using Inventory.Application.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging.Abstractions;
@@ -12,6 +13,8 @@ public class ProductRenamedConsumer(
     ILogger<ProductRenamedConsumer> logger)
     : IEventConsumer<ProductRenamedIntegrationEvent>
 {
+    public static string Topic => Topics.ProductRenamed;
+
     public async Task HandleAsync(ProductRenamedIntegrationEvent @event, CancellationToken ct = default)
     {
         var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == @event.ProductId, ct);

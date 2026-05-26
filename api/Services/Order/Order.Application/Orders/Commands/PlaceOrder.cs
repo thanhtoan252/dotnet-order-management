@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Application.Orders.Models;
 using Order.Application.Services;
 using Order.Domain;
 using Order.Domain.Entities;
@@ -13,17 +14,17 @@ using Shared.Messaging.Abstractions;
 
 namespace Order.Application.Orders.Commands;
 
-public record PlaceOrderCommand(PlaceOrderRequest Request, string PlacedBy)
-    : ICommand<Result<OrderResponse>>;
+public record PlaceOrderCommand(PlaceOrderInput Request, string PlacedBy, Guid UserId)
+    : ICommand<Result<OrderResult>>;
 
 public class PlaceOrderHandler(
     IOrderDbContext db,
     IEventBus eventBus,
     IInventoryService inventoryService,
     ILogger<PlaceOrderHandler> logger)
-    : ICommandHandler<PlaceOrderCommand, Result<OrderResponse>>
+    : ICommandHandler<PlaceOrderCommand, Result<OrderResult>>
 {
-    public async Task<Result<OrderResponse>> HandleAsync(PlaceOrderCommand command, CancellationToken ct)
+    public async Task<Result<OrderResult>> HandleAsync(PlaceOrderCommand command, CancellationToken ct)
     {
         var request = command.Request;
 
@@ -41,11 +42,7 @@ public class PlaceOrderHandler(
             return DomainErrors.Order.InsufficientStock(reasons);
         }
 
-        var address = Address.Create(
-            request.ShippingAddress.Street,
-            request.ShippingAddress.City,
-            request.ShippingAddress.Province,
-            request.ShippingAddress.ZipCode);
+        var address = request.ShippingAddress.ToValueObject();
 
         var createResult = OrderAggregate.Create(request.CustomerId, address, request.Notes);
         if (createResult.IsFailure)
@@ -85,6 +82,7 @@ public class PlaceOrderHandler(
             order.Id,
             order.OrderNumber,
             order.CustomerId,
+            command.UserId,
             order.Items.Select(i => new OrderLineItem(i.ProductId, i.Quantity)).ToList());
 
         await eventBus.PublishAsync(integrationEvent, Topics.OrderPlaced, order.Id.ToString(), ct);
@@ -92,9 +90,10 @@ public class PlaceOrderHandler(
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Order {OrderNumber} placed by {User} for customer {CustomerId} with {ItemCount} item(s). Total: {Total}. Awaiting stock reservation.",
+            "Order {OrderNumber} placed by {User} for customer {CustomerId} with {ItemCount} item(s). " +
+            "Total: {Total}. Awaiting stock reservation.",
             order.OrderNumber, command.PlacedBy, request.CustomerId, order.Items.Count, order.TotalAmount);
 
-        return order.ToCommandResponse();
+        return order.ToResult();
     }
 }

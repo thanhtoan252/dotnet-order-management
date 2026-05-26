@@ -1,4 +1,3 @@
-using FluentValidation;
 using Identity.Application.Common;
 using Identity.Application.Users.Abstractions;
 using Identity.Application.Users.Models;
@@ -8,17 +7,8 @@ using Shared.Core.Domain;
 
 namespace Identity.Application.Users.Commands;
 
-public sealed record AssignRolesCommand(string UserId, AssignRolesRequest Request, string ActorUsername)
+public sealed record AssignRolesCommand(string UserId, AssignRolesInput Input, string ActorUsername)
     : ICommand<Result>;
-
-public sealed class AssignRolesCommandValidator : AbstractValidator<AssignRolesRequest>
-{
-    public AssignRolesCommandValidator()
-    {
-        RuleFor(x => x.Roles).NotNull();
-        RuleForEach(x => x.Roles).NotEmpty().MaximumLength(120);
-    }
-}
 
 public sealed class AssignRolesHandler(
     IKeycloakUserService keycloak,
@@ -36,16 +26,16 @@ public sealed class AssignRolesHandler(
         var available = await keycloak.GetRealmRolesAsync(ct);
         var availableNames = available.Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
 
-        var unknown = command.Request.Roles.FirstOrDefault(r => !availableNames.Contains(r));
+        var unknown = command.Input.Roles.FirstOrDefault(r => !availableNames.Contains(r));
         if (unknown is not null)
         {
             return IdentityErrors.Role.NotFound(unknown);
         }
 
-        await keycloak.ReplaceUserRealmRolesAsync(command.UserId, command.Request.Roles, ct);
+        await keycloak.ReplaceUserRealmRolesAsync(command.UserId, command.Input.Roles, ct);
 
         logger.LogInformation("Roles for user {Id} replaced by {Actor}. Roles=[{Roles}].",
-            command.UserId, command.ActorUsername, string.Join(',', command.Request.Roles));
+            command.UserId, command.ActorUsername, string.Join(',', command.Input.Roles));
 
         return Result.Success();
     }

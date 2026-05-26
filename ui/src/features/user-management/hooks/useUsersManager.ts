@@ -47,7 +47,12 @@ export const useUsersManager = () => {
     }
   }, []);
 
-  useEffect(() => { refresh(); loadRealmRoles(); }, [refresh, loadRealmRoles]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void refresh();
+      void loadRealmRoles();
+    });
+  }, [refresh, loadRealmRoles]);
 
   const createUser = async (form: CreateUserRequest): Promise<string | null> => {
     setLoading(true);

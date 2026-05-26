@@ -1,5 +1,6 @@
 using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
+using Inventory.Application.Items.Models;
 using Inventory.Domain;
 using Inventory.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,13 +10,13 @@ using Shared.Core.Domain;
 
 namespace Inventory.Application.Items.Commands;
 
-public record CreateInventoryItemCommand(CreateInventoryItemRequest Request)
-    : ICommand<Result<InventoryItemResponse>>;
+public record CreateInventoryItemCommand(CreateInventoryItemInput Request)
+    : ICommand<Result<InventoryItemResult>>;
 
 public class CreateInventoryItemHandler(IInventoryDbContext db, ILogger<CreateInventoryItemHandler> logger)
-    : ICommandHandler<CreateInventoryItemCommand, Result<InventoryItemResponse>>
+    : ICommandHandler<CreateInventoryItemCommand, Result<InventoryItemResult>>
 {
-    public async Task<Result<InventoryItemResponse>> HandleAsync(CreateInventoryItemCommand command, CancellationToken ct)
+    public async Task<Result<InventoryItemResult>> HandleAsync(CreateInventoryItemCommand command, CancellationToken ct)
     {
         var request = command.Request;
 
@@ -24,7 +25,11 @@ public class CreateInventoryItemHandler(IInventoryDbContext db, ILogger<CreateIn
             return DomainErrors.InventoryItem.AlreadyExists(request.ProductId);
         }
 
-        var createResult = InventoryItem.Create( request.ProductId, request.Sku, request.ProductName, request.InitialQuantity);
+        var createResult = InventoryItem.Create(
+            request.ProductId,
+            request.Sku,
+            request.ProductName,
+            request.InitialQuantity);
 
         if (createResult.IsFailure)
         {
@@ -38,6 +43,6 @@ public class CreateInventoryItemHandler(IInventoryDbContext db, ILogger<CreateIn
         logger.LogInformation("InventoryItem for product {ProductId} (sku {Sku}) created with initial quantity {Qty}",
             item.ProductId, item.Sku, item.OnHand);
 
-        return item.ToCommandResponse();
+        return item.ToResult();
     }
 }

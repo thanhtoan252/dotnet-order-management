@@ -21,7 +21,11 @@ export const useProductsManager = () => {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void refresh();
+    });
+  }, [refresh]);
 
   const createProduct = async (form: CreateProductRequest): Promise<string | null> => {
     setLoading(true);

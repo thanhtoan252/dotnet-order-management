@@ -4,19 +4,18 @@ internal static class CorsExtensions
 {
     public const string PolicyName = "CorsPolicy";
 
-    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, GatewayCorsOptions corsOptions, IWebHostEnvironment environment)
     {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-
         services.AddCors(options =>
         {
-            if (environment.IsDevelopment() || allowedOrigins.Length == 0)
+            if (environment.IsDevelopment() || corsOptions.AllowedOrigins.Length == 0)
             {
                 options.AddPolicy(PolicyName, p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             }
             else
             {
-                options.AddPolicy(PolicyName, p => p.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader());
+                options.AddPolicy(PolicyName,
+                    p => p.WithOrigins(corsOptions.AllowedOrigins).AllowAnyMethod().AllowAnyHeader());
             }
         });
 

@@ -1,34 +1,18 @@
 using Catalog.Domain.Entities;
-using CmdDto = Catalog.Application.Products.Commands;
-using QryDto = Catalog.Application.Products.Queries;
+using Catalog.Application.Products.Models;
 
 namespace Catalog.Application.Products.Mappers;
 
 internal static class ProductMapper
 {
-    internal static CmdDto.ProductResponse ToCommandResponse(this Product p)
+    internal static ProductResult ToResult(this Product p)
     {
-        return new CmdDto.ProductResponse
-        {
-            Id = p.Id,
-            Name = p.Name,
-            Sku = p.SKU,
-            Price = p.Price.Amount,
-            Currency = p.Price.Currency,
-            Description = p.Description
-        };
-    }
-
-    internal static QryDto.ProductResponse ToQueryResponse(this Product p)
-    {
-        return new QryDto.ProductResponse
-        {
-            Id = p.Id,
-            Name = p.Name,
-            Sku = p.SKU,
-            Price = p.Price.Amount,
-            Currency = p.Price.Currency,
-            Description = p.Description
-        };
+        return new ProductResult(
+            p.Id,
+            p.Name,
+            p.Description,
+            p.SKU,
+            p.Price.Amount,
+            p.Price.Currency);
     }
 }

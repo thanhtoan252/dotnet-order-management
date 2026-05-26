@@ -4,12 +4,12 @@ using Shared.Core.CQRS;
 
 namespace Identity.Application.Users.Queries;
 
-public sealed record GetRealmRolesQuery : IQuery<IReadOnlyList<RealmRoleDto>>;
+public sealed record GetRealmRolesQuery : IQuery<IReadOnlyList<RealmRole>>;
 
 public sealed class GetRealmRolesHandler(IKeycloakUserService keycloak)
-    : IQueryHandler<GetRealmRolesQuery, IReadOnlyList<RealmRoleDto>>
+    : IQueryHandler<GetRealmRolesQuery, IReadOnlyList<RealmRole>>
 {
-    public Task<IReadOnlyList<RealmRoleDto>> HandleAsync(GetRealmRolesQuery query, CancellationToken ct)
+    public Task<IReadOnlyList<RealmRole>> HandleAsync(GetRealmRolesQuery query, CancellationToken ct)
     {
         return keycloak.GetRealmRolesAsync(ct);
     }

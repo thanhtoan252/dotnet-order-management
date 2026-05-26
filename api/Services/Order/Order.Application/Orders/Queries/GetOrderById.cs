@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Order.Application.Orders.Models;
 using Order.Domain;
 using Shared.Core.CQRS;
 using Shared.Core.Domain;
@@ -8,12 +9,12 @@ using Shared.Core.Domain;
 namespace Order.Application.Orders.Queries;
 
 public record GetOrderByIdQuery(Guid OrderId)
-    : IQuery<Result<OrderResponse>>;
+    : IQuery<Result<OrderResult>>;
 
 public class GetOrderByIdHandler(IOrderDbContext db)
-    : IQueryHandler<GetOrderByIdQuery, Result<OrderResponse>>
+    : IQueryHandler<GetOrderByIdQuery, Result<OrderResult>>
 {
-    public async Task<Result<OrderResponse>> HandleAsync(GetOrderByIdQuery query, CancellationToken ct)
+    public async Task<Result<OrderResult>> HandleAsync(GetOrderByIdQuery query, CancellationToken ct)
     {
         var order = await db.Orders
             .Include(o => o.Items)
@@ -24,6 +25,6 @@ public class GetOrderByIdHandler(IOrderDbContext db)
             return DomainErrors.Order.NotFound(query.OrderId);
         }
 
-        return order.ToQueryResponse();
+        return order.ToResult();
     }
 }

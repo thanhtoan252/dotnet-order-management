@@ -1,4 +1,3 @@
-using FluentValidation;
 using Identity.Application.Common;
 using Identity.Application.Users.Abstractions;
 using Identity.Application.Users.Models;
@@ -8,16 +7,8 @@ using Shared.Core.Domain;
 
 namespace Identity.Application.Users.Commands;
 
-public sealed record ResetPasswordCommand(string UserId, ResetPasswordRequest Request, string ActorUsername)
+public sealed record ResetPasswordCommand(string UserId, ResetPasswordInput Input, string ActorUsername)
     : ICommand<Result>;
-
-public sealed class ResetPasswordCommandValidator : AbstractValidator<ResetPasswordRequest>
-{
-    public ResetPasswordCommandValidator()
-    {
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(6).MaximumLength(120);
-    }
-}
 
 public sealed class ResetPasswordHandler(
     IKeycloakUserService keycloak,
@@ -32,10 +23,10 @@ public sealed class ResetPasswordHandler(
             return IdentityErrors.User.NotFound(command.UserId);
         }
 
-        await keycloak.ResetPasswordAsync(command.UserId, command.Request, ct);
+        await keycloak.ResetPasswordAsync(command.UserId, command.Input, ct);
 
         logger.LogInformation("Password reset for user {Id} by {Actor}. Temporary={Temporary}.",
-            command.UserId, command.ActorUsername, command.Request.Temporary);
+            command.UserId, command.ActorUsername, command.Input.Temporary);
 
         return Result.Success();
     }

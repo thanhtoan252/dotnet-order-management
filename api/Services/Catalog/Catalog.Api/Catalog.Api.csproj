@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Http"/>
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
@@ -23,6 +24,10 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"/>
+        <PackageReference Include="NSwag.ApiDescription.Client">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="Scalar.AspNetCore"/>
         <PackageReference Include="Serilog.AspNetCore"/>
         <PackageReference Include="Serilog.Enrichers.Environment"/>
@@ -30,6 +35,22 @@
         <PackageReference Include="Serilog.Enrichers.Thread"/>
         <PackageReference Include="Serilog.Sinks.Console"/>
         <PackageReference Include="Serilog.Sinks.File"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <OpenApiReference Include="Endpoints/Products/V1/Contracts/products-management.yaml"
+                          Namespace="Catalog.Api.Endpoints.Products.V1.Commands.DTOs"
+                          OutputPath="Endpoints/Products/V1/Commands/DTOs/ProductCommandsGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
+        </OpenApiReference>
+
+        <OpenApiReference Include="Endpoints/Products/V1/Contracts/product-query.yaml"
+                          Namespace="Catalog.Api.Endpoints.Products.V1.Queries.DTOs"
+                          OutputPath="Endpoints/Products/V1/Queries/DTOs/ProductQueriesGenerated.g.cs"
+                          CodeGenerator="NSwagCSharp">
+            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
+        </OpenApiReference>
     </ItemGroup>
 
 </Project>

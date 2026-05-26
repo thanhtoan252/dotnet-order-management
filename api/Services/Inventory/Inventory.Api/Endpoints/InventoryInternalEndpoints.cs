@@ -20,6 +20,6 @@ public static class InventoryInternalEndpoints
         StockCheckRequest request, IDispatcher dispatcher, CancellationToken ct)
     {
         var result = await dispatcher.QueryAsync(new CheckAvailabilityQuery(request.Items), ct);
-        return TypedResults.Ok(result);
+        return Results.Ok(result);
     }
 }

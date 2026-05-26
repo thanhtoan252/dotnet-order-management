@@ -20,22 +20,28 @@ public static class DomainErrors
 
         public static Error NotFound(Guid id)
         {
-            return new Error("Order.NotFound", $"Order {id} not found.");
+            return new Error("Order.NotFound", $"Order {id} not found.", ErrorType.NotFound);
         }
 
         public static Error InvalidState(string state, string operation)
         {
-            return new Error("Order.InvalidState", $"Cannot '{operation}' on order in '{state}' state.");
+            return new Error(
+                "Order.InvalidState",
+                $"Cannot '{operation}' on order in '{state}' state.",
+                ErrorType.Conflict);
         }
 
         public static Error ProductsNotFound(IEnumerable<Guid> ids)
         {
-            return new Error("Order.ProductsNotFound", $"Products not found: {string.Join(", ", ids)}");
+            return new Error(
+                "Order.ProductsNotFound",
+                $"Products not found: {string.Join(", ", ids)}",
+                ErrorType.NotFound);
         }
 
         public static Error InsufficientStock(string details)
         {
-            return new Error("Order.InsufficientStock", $"Stock check failed: {details}");
+            return new Error("Order.InsufficientStock", $"Stock check failed: {details}", ErrorType.Conflict);
         }
     }
 }

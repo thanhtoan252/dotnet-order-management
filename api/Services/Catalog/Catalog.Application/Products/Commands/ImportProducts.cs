@@ -1,5 +1,8 @@
 using Catalog.Application.Products.Mappers;
+using Catalog.Application.Products.Models;
+using Catalog.Domain;
 using Catalog.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
@@ -20,19 +23,36 @@ public sealed record ImportProductsRow(
     string? Description,
     int? InitialStockQuantity);
 
-public sealed record ImportProductsResponse(int ImportedCount, IReadOnlyList<ProductResponse> Products);
-
 public record ImportProductsCommand(IReadOnlyList<ImportProductsRow> Rows)
-    : ICommand<Result<ImportProductsResponse>>;
+    : ICommand<Result<ImportProductsResult>>;
 
 public sealed class ImportProductsHandler(
     ICatalogDb db,
     IEventBus eventBus,
     ILogger<ImportProductsHandler> logger)
-    : ICommandHandler<ImportProductsCommand, Result<ImportProductsResponse>>
+    : ICommandHandler<ImportProductsCommand, Result<ImportProductsResult>>
 {
-    public async Task<Result<ImportProductsResponse>> HandleAsync(ImportProductsCommand command, CancellationToken ct)
+    public async Task<Result<ImportProductsResult>> HandleAsync(ImportProductsCommand command, CancellationToken ct)
     {
+        var skus = command.Rows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Sku))
+            .Select(r => r.Sku!.Trim().ToUpperInvariant())
+            .Distinct()
+            .ToList();
+
+        if (skus.Count > 0)
+        {
+            var existingSku = await db.Products
+                .Where(p => skus.Contains(p.SKU))
+                .Select(p => p.SKU)
+                .FirstOrDefaultAsync(ct);
+
+            if (existingSku is not null)
+            {
+                return DomainErrors.Product.SkuAlreadyExists(existingSku);
+            }
+        }
+
         var imported = new List<Product>(command.Rows.Count);
 
         foreach (var row in command.Rows)
@@ -71,6 +91,6 @@ public sealed class ImportProductsHandler(
 
         logger.LogInformation("Imported {Count} products in bulk.", imported.Count);
 
-        return new ImportProductsResponse(imported.Count, imported.Select(p => p.ToCommandResponse()).ToList());
+        return new ImportProductsResult(imported.Count, imported.Select(p => p.ToResult()).ToList());
     }
 }

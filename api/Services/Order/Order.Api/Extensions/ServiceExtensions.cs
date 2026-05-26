@@ -4,13 +4,17 @@ using Microsoft.IdentityModel.Tokens;
 using Order.Application;
 using Order.Infrastructure;
 using Order.Infrastructure.Data;
+using Shared.Web.Authentication;
+using Shared.Web.Cors;
+using Shared.Web.Extensions;
 using Shared.Web.Middleware;
 
 namespace Order.Api.Extensions;
 
 internal static class ServiceExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services,
+        IConfiguration configuration)
     {
         services
             .AddApplication()
@@ -18,23 +22,24 @@ internal static class ServiceExtensions
 
         services.AddValidatorsFromAssemblyContaining<Program>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddUserPrinciple();
         services.AddProblemDetails();
         services.AddHealthChecks().AddDbContextCheck<OrderDbContext>("database");
+        services.AddOrderApiVersioning();
         services.AddOpenApi();
 
         return services;
     }
 
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfigurationSection keycloak)
+    public static IServiceCollection AddJwtAuth(this IServiceCollection services, KeycloakJwtOptions keycloak)
     {
-        var authority = keycloak["Authority"]!;
-        var validIssuer = keycloak["ValidIssuer"] ?? authority;
+        var validIssuer = keycloak.ValidIssuer ?? keycloak.Authority;
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.Authority = authority;
+                options.Authority = keycloak.Authority;
                 options.RequireHttpsMetadata = false;
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -57,19 +62,19 @@ internal static class ServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, AppCorsOptions corsOptions,
+        IWebHostEnvironment environment)
     {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-
         services.AddCors(options =>
         {
-            if (environment.IsDevelopment() || allowedOrigins.Length == 0)
+            if (environment.IsDevelopment() || corsOptions.AllowedOrigins.Length == 0)
             {
                 options.AddPolicy("CorsPolicy", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             }
             else
             {
-                options.AddPolicy("CorsPolicy", p => p.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader());
+                options.AddPolicy("CorsPolicy",
+                    p => p.WithOrigins(corsOptions.AllowedOrigins).AllowAnyMethod().AllowAnyHeader());
             }
         });
 

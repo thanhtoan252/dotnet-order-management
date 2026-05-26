@@ -75,7 +75,11 @@ internal static class ExcelMapper<T> where T : new()
         if (type == typeof(decimal))
         {
             if (cell.DataType == XLDataType.Number) return (decimal)cell.GetDouble();
-            return decimal.TryParse(cell.GetString().Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var d)
+            return decimal.TryParse(
+                    cell.GetString().Trim(),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var d)
                 ? (object)d : null;
         }
         if (type == typeof(int))

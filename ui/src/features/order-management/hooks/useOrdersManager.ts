@@ -50,7 +50,9 @@ export const useOrdersManager = () => {
   }, [loading, hasMore]);
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
     fetchProductsApi().then(setProducts).catch(() => {});
   }, [refresh]);
 

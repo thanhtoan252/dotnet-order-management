@@ -1,6 +1,7 @@
 using Inventory.Application.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging.Abstractions;
@@ -12,6 +13,8 @@ public class ProductDeletedConsumer(
     ILogger<ProductDeletedConsumer> logger)
     : IEventConsumer<ProductDeletedIntegrationEvent>
 {
+    public static string Topic => Topics.ProductDeleted;
+
     public async Task HandleAsync(ProductDeletedIntegrationEvent @event, CancellationToken ct = default)
     {
         var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == @event.ProductId, ct);

@@ -6,6 +6,5 @@ public sealed record OrderPlacedIntegrationEvent(
     Guid OrderId,
     string OrderNumber,
     Guid CustomerId,
+    Guid UserId,
     IReadOnlyList<OrderLineItem> Items) : IIntegrationEvent;
-
-public sealed record OrderLineItem(Guid ProductId, int Quantity);

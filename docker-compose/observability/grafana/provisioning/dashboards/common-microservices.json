@@ -1553,7 +1553,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{service_name=~\"$service\"} |~ \"(?i)(error|exception|fatal)\""
+          "expr": "{service_name=~"$service"} | json | level=~"(?i)error|fatal|critical" | line_format \"{{.timestamp}} {{.level}} {{.message}}\""
         }
       ]
     },

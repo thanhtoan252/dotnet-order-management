@@ -21,7 +21,11 @@ export const useInventoryManager = () => {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void refresh();
+    });
+  }, [refresh]);
 
   const replaceItem = (updated: InventoryItem) =>
     setItems(prev => prev.map(i => (i.productId === updated.productId ? updated : i)));

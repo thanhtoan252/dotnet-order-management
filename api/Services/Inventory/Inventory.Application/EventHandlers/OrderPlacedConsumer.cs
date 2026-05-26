@@ -15,6 +15,8 @@ public class OrderPlacedConsumer(
     ILogger<OrderPlacedConsumer> logger)
     : IEventConsumer<OrderPlacedIntegrationEvent>
 {
+    public static string Topic => Topics.OrderPlaced;
+
     public async Task HandleAsync(OrderPlacedIntegrationEvent @event, CancellationToken ct = default)
     {
         logger.LogInformation("Reserving inventory for order {OrderId} ({OrderNumber})",
@@ -40,7 +42,10 @@ public class OrderPlacedConsumer(
             if (item.Available < line.Quantity)
             {
                 await PublishFailure(@event.OrderId,
-                    DomainErrors.InventoryItem.InsufficientStock(item.ProductName, item.Available, line.Quantity).Message,
+                    DomainErrors.InventoryItem.InsufficientStock(
+                        item.ProductName,
+                        item.Available,
+                        line.Quantity).Message,
                     ct);
                 return;
             }
@@ -57,7 +62,8 @@ public class OrderPlacedConsumer(
             if (reserveResult.IsFailure)
             {
                 throw new InvalidOperationException(
-                    $"Reserve failed for product {line.ProductId} after pre-check passed: {reserveResult.Error.Message}");
+                    $"Reserve failed for product {line.ProductId} after pre-check passed: " +
+                    reserveResult.Error.Message);
             }
 
             reservedItems.Add(new ReservedItem(item.ProductId, line.Quantity));

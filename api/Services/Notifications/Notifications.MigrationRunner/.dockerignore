@@ -1,0 +1,38 @@
+# Build outputs
+**/bin/
+**/obj/
+**/*.o
+**/*.a
+**/*.user
+**/*.suo
+
+# Version control
+.git
+.gitignore
+.github
+
+# IDE
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+**/docker-compose*.yml
+
+# Testing
+**/test-results/
+**/coverage/
+**/*.trx
+
+# Runtime temp
+**/tmp/
+**/temp/
+**/.cache
+**/node_modules/

@@ -1,5 +1,6 @@
 using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
+using Inventory.Application.Items.Models;
 using Inventory.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,13 +9,13 @@ using Shared.Core.Domain;
 
 namespace Inventory.Application.Items.Commands;
 
-public record ReceiveStockCommand(Guid ProductId, ReceiveStockRequest Request)
-    : ICommand<Result<InventoryItemResponse>>;
+public record ReceiveStockCommand(Guid ProductId, ReceiveStockInput Request)
+    : ICommand<Result<InventoryItemResult>>;
 
 public class ReceiveStockHandler(IInventoryDbContext db, ILogger<ReceiveStockHandler> logger)
-    : ICommandHandler<ReceiveStockCommand, Result<InventoryItemResponse>>
+    : ICommandHandler<ReceiveStockCommand, Result<InventoryItemResult>>
 {
-    public async Task<Result<InventoryItemResponse>> HandleAsync(ReceiveStockCommand command, CancellationToken ct)
+    public async Task<Result<InventoryItemResult>> HandleAsync(ReceiveStockCommand command, CancellationToken ct)
     {
         var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == command.ProductId, ct);
         if (item is null)
@@ -33,6 +34,6 @@ public class ReceiveStockHandler(IInventoryDbContext db, ILogger<ReceiveStockHan
         logger.LogInformation("Received {Qty} units for product {ProductId}. New OnHand: {OnHand}",
             command.Request.Quantity, command.ProductId, item.OnHand);
 
-        return item.ToCommandResponse();
+        return item.ToResult();
     }
 }

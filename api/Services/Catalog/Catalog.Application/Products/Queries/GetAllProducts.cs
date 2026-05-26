@@ -1,17 +1,18 @@
 using Catalog.Application.Abstractions;
 using Catalog.Application.Products.Mappers;
+using Catalog.Application.Products.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.CQRS;
 
 namespace Catalog.Application.Products.Queries;
 
 public record GetAllProductsQuery(int Page = 1, int PageSize = 100)
-    : IQuery<IReadOnlyList<ProductResponse>>;
+    : IQuery<IReadOnlyList<ProductResult>>;
 
 public class GetAllProductsHandler(ICatalogDbContext db)
-    : IQueryHandler<GetAllProductsQuery, IReadOnlyList<ProductResponse>>
+    : IQueryHandler<GetAllProductsQuery, IReadOnlyList<ProductResult>>
 {
-    public async Task<IReadOnlyList<ProductResponse>> HandleAsync(GetAllProductsQuery query, CancellationToken ct)
+    public async Task<IReadOnlyList<ProductResult>> HandleAsync(GetAllProductsQuery query, CancellationToken ct)
     {
         var products = await db.Products
             .OrderBy(p => p.Name)
@@ -20,6 +21,6 @@ public class GetAllProductsHandler(ICatalogDbContext db)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return products.Select(p => p.ToQueryResponse()).ToList();
+        return products.Select(p => p.ToResult()).ToList();
     }
 }

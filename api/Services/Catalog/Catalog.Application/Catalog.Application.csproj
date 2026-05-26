@@ -17,26 +17,6 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-        <PackageReference Include="NSwag.ApiDescription.Client">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <OpenApiReference Include="Products/Contracts/products-management.yaml"
-                          Namespace="Catalog.Application.Products.Commands"
-                          OutputPath="Products/Commands/ProductCommandsGenerated.g.cs"
-                          CodeGenerator="NSwagCSharp">
-            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails,ImportProductsResponse</Options>
-        </OpenApiReference>
-
-        <OpenApiReference Include="Products/Contracts/product-query.yaml"
-                          Namespace="Catalog.Application.Products.Queries"
-                          OutputPath="Products/Queries/ProductQueriesGenerated.g.cs"
-                          CodeGenerator="NSwagCSharp">
-            <Options>/GenerateClientClasses:false /GenerateClientInterfaces:false /GenerateDtoTypes:true /JsonLibrary:SystemTextJson /GenerateDefaultValues:true /GenerateNullableReferenceTypes:true /UseBaseUrl:false /DateType:System.DateTimeOffset /DateTimeType:System.DateTimeOffset /ArrayType:System.Collections.Generic.ICollection /ArrayInstanceType:System.Collections.Generic.List /ExcludedTypeNames:ProblemDetails</Options>
-        </OpenApiReference>
     </ItemGroup>
 
 </Project>

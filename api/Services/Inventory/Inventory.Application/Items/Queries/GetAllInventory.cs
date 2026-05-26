@@ -1,17 +1,18 @@
 using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
+using Inventory.Application.Items.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared.Core.CQRS;
 
 namespace Inventory.Application.Items.Queries;
 
 public record GetAllInventoryQuery(int Page = 1, int PageSize = 100)
-    : IQuery<IReadOnlyList<InventoryItemResponse>>;
+    : IQuery<IReadOnlyList<InventoryItemResult>>;
 
 public class GetAllInventoryHandler(IInventoryDbContext db)
-    : IQueryHandler<GetAllInventoryQuery, IReadOnlyList<InventoryItemResponse>>
+    : IQueryHandler<GetAllInventoryQuery, IReadOnlyList<InventoryItemResult>>
 {
-    public async Task<IReadOnlyList<InventoryItemResponse>> HandleAsync(GetAllInventoryQuery query, CancellationToken ct)
+    public async Task<IReadOnlyList<InventoryItemResult>> HandleAsync(GetAllInventoryQuery query, CancellationToken ct)
     {
         var items = await db.InventoryItems
             .OrderBy(i => i.Sku)
@@ -20,6 +21,6 @@ public class GetAllInventoryHandler(IInventoryDbContext db)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return items.Select(i => i.ToQueryResponse()).ToList();
+        return items.Select(i => i.ToResult()).ToList();
     }
 }

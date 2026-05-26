@@ -5,5 +5,6 @@ public sealed record OrderCancelledIntegrationEvent(
     DateTime OccurredOn,
     Guid OrderId,
     string OrderNumber,
+    Guid UserId,
     string Reason,
     IReadOnlyList<OrderLineItem> Items) : IIntegrationEvent;

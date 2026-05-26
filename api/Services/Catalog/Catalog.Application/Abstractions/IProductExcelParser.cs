@@ -4,7 +4,10 @@ namespace Catalog.Application.Abstractions;
 
 public interface IProductExcelParser
 {
-    IReadOnlyList<ImportProductsRow> Parse(Stream xlsxStream);
+    ProductExcelParseResult Parse(Stream xlsxStream);
 }
 
-public sealed class ProductExcelParseException(string message) : Exception(message);
+public sealed record ProductExcelParseResult(IReadOnlyList<ImportProductsRow> Rows, IReadOnlyDictionary<string, string[]> Errors)
+{
+    public bool IsValid => Errors.Count == 0;
+}

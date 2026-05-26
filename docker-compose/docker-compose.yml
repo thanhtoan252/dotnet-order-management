@@ -56,6 +56,25 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # ─── Notifications Database (SQL Server) ────────────────────────────────────
+  notifications-db:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: notifications-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+    ports:
+      - "1436:1433"
+    volumes:
+      - notifications-db-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/1433'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+
   # ─── Kafka (KRaft mode — no Zookeeper) ──────────────────────────────────────
   kafka:
     image: confluentinc/cp-kafka:7.9.0
@@ -137,6 +156,19 @@ services:
       ConnectionStrings__DefaultConnection: "Server=inventory-db,1433;Database=InventoryDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
     depends_on:
       inventory-db:
+        condition: service_healthy
+    restart: "no"
+
+  # ─── Notifications Migration Runner ─────────────────────────────────────────
+  notifications-migration:
+    build:
+      context: ../api
+      dockerfile: Services/Notifications/Notifications.MigrationRunner/Dockerfile
+    container_name: notifications-migration
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=notifications-db,1433;Database=NotificationsDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+    depends_on:
+      notifications-db:
         condition: service_healthy
     restart: "no"
 
@@ -268,6 +300,39 @@ services:
       - ./logs/identity:/app/logs
     restart: unless-stopped
 
+  # ─── Notifications Service ──────────────────────────────────────────────────
+  notifications-api:
+    build:
+      context: ../api
+      dockerfile: Services/Notifications/Notifications.Api/Dockerfile
+    container_name: notifications-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ConnectionStrings__DefaultConnection: "Server=notifications-db,1433;Database=NotificationsDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      Keycloak__Authority: "http://keycloak:8080/realms/order-management"
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__GroupId: "notifications-service-group"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "notifications-api"
+      OTEL_RESOURCE_ATTRIBUTES: "service.namespace=order-management,deployment.environment=development"
+      OTEL_METRIC_EXPORT_INTERVAL: "10000"
+      OTEL_DOTNET_EXPERIMENTAL_SQLCLIENT_ENABLE_TRACE_DB_STATEMENT_TEXT: "true"
+    ports:
+      - "8085:8080"
+    depends_on:
+      notifications-migration:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    volumes:
+      - ./logs/notifications:/app/logs
+    restart: unless-stopped
+
   # ─── API Gateway (YARP) ─────────────────────────────────────────────────────
   api-gateway:
     build:
@@ -282,6 +347,7 @@ services:
       ReverseProxy__Clusters__catalog-cluster__Destinations__catalog-api__Address: "http://catalog-api:8080"
       ReverseProxy__Clusters__inventory-cluster__Destinations__inventory-api__Address: "http://inventory-api:8080"
       ReverseProxy__Clusters__identity-cluster__Destinations__identity-api__Address: "http://identity-api:8080"
+      ReverseProxy__Clusters__notifications-cluster__Destinations__notifications-api__Address: "http://notifications-api:8080"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "api-gateway"
@@ -297,6 +363,8 @@ services:
       inventory-api:
         condition: service_started
       identity-api:
+        condition: service_started
+      notifications-api:
         condition: service_started
       keycloak:
         condition: service_healthy
@@ -448,6 +516,7 @@ volumes:
   order-db-data:
   catalog-db-data:
   inventory-db-data:
+  notifications-db-data:
   kafka-data:
   keycloak-db-data:
   tempo-data:

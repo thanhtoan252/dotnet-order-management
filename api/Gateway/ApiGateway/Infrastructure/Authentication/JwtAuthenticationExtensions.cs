@@ -6,7 +6,8 @@ namespace ApiGateway.Infrastructure.Authentication;
 
 internal static class JwtAuthenticationExtensions
 {
-    public static IServiceCollection AddKeycloakAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddKeycloakAuthentication(this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddOptions<KeycloakSettings>()
             .BindConfiguration(KeycloakSettings.SectionName)

@@ -1,5 +1,6 @@
 using Catalog.Application.Abstractions;
 using Catalog.Application.Products.Mappers;
+using Catalog.Application.Products.Models;
 using Catalog.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts;
@@ -11,16 +12,16 @@ using Shared.Messaging.Abstractions;
 
 namespace Catalog.Application.Products.Commands;
 
-public record CreateProductCommand(CreateProductRequest Request)
-    : ICommand<Result<ProductResponse>>;
+public record CreateProductCommand(CreateProductInput Request)
+    : ICommand<Result<ProductResult>>;
 
 public class CreateProductHandler(
     ICatalogDbContext db,
     IEventBus eventBus,
     ILogger<CreateProductHandler> logger)
-    : ICommandHandler<CreateProductCommand, Result<ProductResponse>>
+    : ICommandHandler<CreateProductCommand, Result<ProductResult>>
 {
-    public async Task<Result<ProductResponse>> HandleAsync(CreateProductCommand command, CancellationToken ct)
+    public async Task<Result<ProductResult>> HandleAsync(CreateProductCommand command, CancellationToken ct)
     {
         var request = command.Request;
         var priceResult = Money.Create(request.Price, request.Currency);
@@ -55,6 +56,6 @@ public class CreateProductHandler(
 
         logger.LogInformation("Product {Sku} created with Id {Id}.", product.SKU, product.Id);
 
-        return product.ToCommandResponse();
+        return product.ToResult();
     }
 }

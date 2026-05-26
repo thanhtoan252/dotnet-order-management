@@ -20,8 +20,15 @@ COPY Services/Inventory/Inventory.MigrationRunner/Inventory.MigrationRunner.cspr
 
 RUN dotnet restore Services/Inventory/Inventory.MigrationRunner/Inventory.MigrationRunner.csproj
 
-# Copy everything and build
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Core/ Shared/Shared.Core/
+COPY Shared/Shared.Contracts/ Shared/Shared.Contracts/
+COPY Shared/Shared.Messaging.Abstractions/ Shared/Shared.Messaging.Abstractions/
+COPY Shared/Shared.Messaging/ Shared/Shared.Messaging/
+COPY Services/Inventory/Inventory.Domain/ Services/Inventory/Inventory.Domain/
+COPY Services/Inventory/Inventory.Application/ Services/Inventory/Inventory.Application/
+COPY Services/Inventory/Inventory.Infrastructure/ Services/Inventory/Inventory.Infrastructure/
+COPY Services/Inventory/Inventory.MigrationRunner/ Services/Inventory/Inventory.MigrationRunner/
 WORKDIR /build/Services/Inventory/Inventory.MigrationRunner
 RUN dotnet publish -c Release -o /app/publish --no-restore
 

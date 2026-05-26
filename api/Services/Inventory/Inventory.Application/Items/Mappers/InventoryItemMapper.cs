@@ -1,34 +1,18 @@
 using Inventory.Domain.Entities;
-using CmdDto = Inventory.Application.Items.Commands;
-using QryDto = Inventory.Application.Items.Queries;
+using Inventory.Application.Items.Models;
 
 namespace Inventory.Application.Items.Mappers;
 
 internal static class InventoryItemMapper
 {
-    internal static CmdDto.InventoryItemResponse ToCommandResponse(this InventoryItem item)
+    internal static InventoryItemResult ToResult(this InventoryItem item)
     {
-        return new CmdDto.InventoryItemResponse
-        {
-            ProductId = item.ProductId,
-            Sku = item.Sku,
-            ProductName = item.ProductName,
-            OnHand = item.OnHand,
-            Reserved = item.Reserved,
-            Available = item.Available
-        };
-    }
-
-    internal static QryDto.InventoryItemResponse ToQueryResponse(this InventoryItem item)
-    {
-        return new QryDto.InventoryItemResponse
-        {
-            ProductId = item.ProductId,
-            Sku = item.Sku,
-            ProductName = item.ProductName,
-            OnHand = item.OnHand,
-            Reserved = item.Reserved,
-            Available = item.Available
-        };
+        return new InventoryItemResult(
+            item.ProductId,
+            item.Sku,
+            item.ProductName,
+            item.OnHand,
+            item.Reserved,
+            item.Available);
     }
 }

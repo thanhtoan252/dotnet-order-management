@@ -1,6 +1,5 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
@@ -23,12 +22,22 @@ COPY Services/Catalog/Catalog.Api/Catalog.Api.csproj Services/Catalog/Catalog.Ap
 
 RUN dotnet restore Services/Catalog/Catalog.Api/Catalog.Api.csproj
 
-# Copy everything and build
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Core/ Shared/Shared.Core/
+COPY Shared/Shared.Contracts/ Shared/Shared.Contracts/
+COPY Shared/Shared.Messaging.Abstractions/ Shared/Shared.Messaging.Abstractions/
+COPY Shared/Shared.Messaging/ Shared/Shared.Messaging/
+COPY Shared/Shared.Observability/ Shared/Shared.Observability/
+COPY Shared/Shared.Web/ Shared/Shared.Web/
+COPY Services/Catalog/Catalog.Domain/ Services/Catalog/Catalog.Domain/
+COPY Services/Catalog/Catalog.Application/ Services/Catalog/Catalog.Application/
+COPY Services/Catalog/Catalog.Infrastructure/ Services/Catalog/Catalog.Infrastructure/
+COPY Services/Catalog/Catalog.Api/ Services/Catalog/Catalog.Api/
 WORKDIR /build/Services/Catalog/Catalog.Api
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
 FROM base AS final
 WORKDIR /app
+EXPOSE 8080
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Catalog.Api.dll"]

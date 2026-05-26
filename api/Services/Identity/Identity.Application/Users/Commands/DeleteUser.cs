@@ -23,7 +23,11 @@ public sealed class DeleteUserHandler(
 
         await keycloak.DeleteAsync(command.UserId, ct);
 
-        logger.LogInformation("User {Id} ({Username}) deleted by {Actor}.", command.UserId, existing.Username, command.DeletedBy);
+        logger.LogInformation(
+            "User {Id} ({Username}) deleted by {Actor}.",
+            command.UserId,
+            existing.Username,
+            command.DeletedBy);
 
         return Result.Success();
     }

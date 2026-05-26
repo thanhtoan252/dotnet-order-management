@@ -35,7 +35,10 @@ public sealed class CheckAvailabilityHandler(IInventoryDbContext db)
             {
                 failures.Add(new StockCheckFailure(
                     requested.ProductId,
-                    DomainErrors.InventoryItem.InsufficientStock(item.ProductName, item.Available, requested.Quantity).Message));
+                    DomainErrors.InventoryItem.InsufficientStock(
+                        item.ProductName,
+                        item.Available,
+                        requested.Quantity).Message));
             }
         }
 

@@ -1,5 +1,6 @@
 using Catalog.Application.Abstractions;
 using Catalog.Application.Products.Mappers;
+using Catalog.Application.Products.Models;
 using Catalog.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,16 +13,16 @@ using Shared.Messaging.Abstractions;
 
 namespace Catalog.Application.Products.Commands;
 
-public record UpdateProductCommand(Guid ProductId, UpdateProductRequest Request)
-    : ICommand<Result<ProductResponse>>;
+public record UpdateProductCommand(Guid ProductId, UpdateProductInput Request)
+    : ICommand<Result<ProductResult>>;
 
 public class UpdateProductHandler(
     ICatalogDbContext db,
     IEventBus eventBus,
     ILogger<UpdateProductHandler> logger)
-    : ICommandHandler<UpdateProductCommand, Result<ProductResponse>>
+    : ICommandHandler<UpdateProductCommand, Result<ProductResult>>
 {
-    public async Task<Result<ProductResponse>> HandleAsync(UpdateProductCommand command, CancellationToken ct)
+    public async Task<Result<ProductResult>> HandleAsync(UpdateProductCommand command, CancellationToken ct)
     {
         var product = await db.Products.SingleOrDefaultAsync(p => p.Id == command.ProductId, ct);
         if (product is null)
@@ -71,6 +72,6 @@ public class UpdateProductHandler(
 
         logger.LogInformation("Product {Id} updated.", command.ProductId);
 
-        return product.ToCommandResponse();
+        return product.ToResult();
     }
 }

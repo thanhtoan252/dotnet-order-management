@@ -12,7 +12,8 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
 {
     private readonly string _realm = options.Value.Realm;
 
-    public async Task<IReadOnlyList<UserDto>> SearchAsync(string? search, int first, int max, bool? enabled, CancellationToken ct)
+    public async Task<IReadOnlyList<User>> SearchAsync(
+        string? search, int first, int max, bool? enabled, CancellationToken ct)
     {
         var users = await api.SearchUsersAsync(_realm, search, first, max, enabled, briefRepresentation: true, ct);
 
@@ -41,7 +42,7 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
         return api.CountUsersAsync(_realm, search, ct);
     }
 
-    public async Task<UserDto?> GetByIdAsync(string id, CancellationToken ct)
+    public async Task<User?> GetByIdAsync(string id, CancellationToken ct)
     {
         try
         {
@@ -62,23 +63,23 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
         }
     }
 
-    public async Task<Result<string>> CreateAsync(CreateUserRequest request, CancellationToken ct)
+    public async Task<Result<string>> CreateAsync(CreateUserInput input, CancellationToken ct)
     {
         var representation = new KeycloakUserRepresentation
         {
-            Username = request.Username,
-            Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Enabled = request.Enabled,
+            Username = input.Username,
+            Email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email,
+            FirstName = input.FirstName,
+            LastName = input.LastName,
+            Enabled = input.Enabled,
             EmailVerified = false,
             Credentials =
             [
                 new KeycloakCredentialRepresentation
                 {
                     Type = "password",
-                    Value = request.Password,
-                    Temporary = request.TemporaryPassword
+                    Value = input.Password,
+                    Temporary = input.TemporaryPassword
                 }
             ]
         };
@@ -108,14 +109,14 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
         }
     }
 
-    public async Task UpdateAsync(string id, UpdateUserRequest request, CancellationToken ct)
+    public async Task UpdateAsync(string id, UpdateUserInput input, CancellationToken ct)
     {
         var representation = new KeycloakUserRepresentation
         {
-            Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Enabled = request.Enabled
+            Email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email,
+            FirstName = input.FirstName,
+            LastName = input.LastName,
+            Enabled = input.Enabled
         };
 
         await api.UpdateUserAsync(_realm, id, representation, ct);
@@ -126,13 +127,13 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
         return api.DeleteUserAsync(_realm, id, ct);
     }
 
-    public Task ResetPasswordAsync(string id, ResetPasswordRequest request, CancellationToken ct)
+    public Task ResetPasswordAsync(string id, ResetPasswordInput input, CancellationToken ct)
     {
         var credential = new KeycloakCredentialRepresentation
         {
             Type = "password",
-            Value = request.Password,
-            Temporary = request.Temporary
+            Value = input.Password,
+            Temporary = input.Temporary
         };
 
         return api.ResetPasswordAsync(_realm, id, credential, ct);
@@ -154,7 +155,10 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
 
         var desiredSet = new HashSet<string>(roleNames, StringComparer.Ordinal);
         var current = await api.GetUserRealmRolesAsync(_realm, id, ct);
-        var currentNames = current.Where(r => r.Name is not null).Select(r => r.Name!).ToHashSet(StringComparer.Ordinal);
+        var currentNames = current
+            .Where(r => r.Name is not null)
+            .Select(r => r.Name!)
+            .ToHashSet(StringComparer.Ordinal);
 
         var toAdd = desiredSet
             .Where(n => !currentNames.Contains(n) && availableByName.ContainsKey(n))
@@ -176,19 +180,19 @@ public sealed class KeycloakUserService(IKeycloakAdminApi api, IOptions<Keycloak
         }
     }
 
-    public async Task<IReadOnlyList<RealmRoleDto>> GetRealmRolesAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<RealmRole>> GetRealmRolesAsync(CancellationToken ct)
     {
         var roles = await api.GetRealmRolesAsync(_realm, ct);
 
         return roles
             .Where(r => r.Id is not null && r.Name is not null)
-            .Select(r => new RealmRoleDto(r.Id!, r.Name!, r.Description))
+            .Select(r => new RealmRole(r.Id!, r.Name!, r.Description))
             .ToList();
     }
 
-    private static UserDto MapUser(KeycloakUserRepresentation user, IReadOnlyList<string> roles)
+    private static User MapUser(KeycloakUserRepresentation user, IReadOnlyList<string> roles)
     {
-        return new UserDto(
+        return new User(
             Id: user.Id ?? string.Empty,
             Username: user.Username ?? string.Empty,
             Email: user.Email,

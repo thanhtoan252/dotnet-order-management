@@ -5,12 +5,12 @@ using Shared.Core.CQRS;
 namespace Identity.Application.Users.Queries;
 
 public sealed record GetUsersQuery(string? Search, int First, int Max, bool? Enabled)
-    : IQuery<IReadOnlyList<UserDto>>;
+    : IQuery<IReadOnlyList<User>>;
 
 public sealed class GetUsersHandler(IKeycloakUserService keycloak)
-    : IQueryHandler<GetUsersQuery, IReadOnlyList<UserDto>>
+    : IQueryHandler<GetUsersQuery, IReadOnlyList<User>>
 {
-    public Task<IReadOnlyList<UserDto>> HandleAsync(GetUsersQuery query, CancellationToken ct)
+    public Task<IReadOnlyList<User>> HandleAsync(GetUsersQuery query, CancellationToken ct)
     {
         return keycloak.SearchAsync(query.Search, query.First, query.Max, query.Enabled, ct);
     }

@@ -1,6 +1,7 @@
 using Inventory.Application.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging.Abstractions;
@@ -12,6 +13,8 @@ public class OrderCancelledConsumer(
     ILogger<OrderCancelledConsumer> logger)
     : IEventConsumer<OrderCancelledIntegrationEvent>
 {
+    public static string Topic => Topics.OrderCancelled;
+
     public async Task HandleAsync(OrderCancelledIntegrationEvent @event, CancellationToken ct = default)
     {
         logger.LogInformation("Releasing inventory for cancelled order {OrderId} ({OrderNumber})",

@@ -1,6 +1,5 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
@@ -15,12 +14,14 @@ COPY Gateway/ApiGateway/ApiGateway.csproj Gateway/ApiGateway/
 
 RUN dotnet restore Gateway/ApiGateway/ApiGateway.csproj
 
-# Copy everything and build
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Observability/ Shared/Shared.Observability/
+COPY Gateway/ApiGateway/ Gateway/ApiGateway/
 WORKDIR /build/Gateway/ApiGateway
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
 FROM base AS final
 WORKDIR /app
+EXPOSE 8080
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "ApiGateway.dll"]

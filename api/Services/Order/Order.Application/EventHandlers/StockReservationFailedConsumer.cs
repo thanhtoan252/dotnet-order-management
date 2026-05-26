@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
+using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Messaging.Abstractions;
@@ -15,6 +16,8 @@ public class StockReservationFailedConsumer(
     ILogger<StockReservationFailedConsumer> logger)
     : IEventConsumer<StockReservationFailedIntegrationEvent>
 {
+    public static string Topic => Topics.StockReservationFailed;
+
     public async Task HandleAsync(StockReservationFailedIntegrationEvent @event, CancellationToken ct = default)
     {
         logger.LogWarning("Stock reservation failed for order {OrderId}: {Reason}", @event.OrderId, @event.Reason);

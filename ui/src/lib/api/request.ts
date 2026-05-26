@@ -8,8 +8,9 @@ export async function request<T>(
   url: string,
   body?: unknown,
   params?: Record<string, string | number>,
+  requestHeaders?: Record<string, string>,
 ): Promise<{ data: T }> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...requestHeaders };
 
   const token = localStorage.getItem('token');
   if (token) {
@@ -35,7 +36,7 @@ export async function request<T>(
     return handleResponse<T>(response);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('Request timed out');
+      throw new Error('Request timed out', { cause: error });
     }
     throw error;
   } finally {

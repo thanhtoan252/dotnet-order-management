@@ -40,6 +40,7 @@ public class DeleteOrderHandler(
                 DateTime.UtcNow,
                 order.Id,
                 order.OrderNumber,
+                Guid.Empty,
                 "Order deleted",
                 order.Items.Select(i => new OrderLineItem(i.ProductId, i.Quantity)).ToList());
 

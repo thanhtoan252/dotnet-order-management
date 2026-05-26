@@ -1,5 +1,6 @@
 using Inventory.Application.Abstractions;
 using Inventory.Application.Items.Mappers;
+using Inventory.Application.Items.Models;
 using Inventory.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,13 +9,13 @@ using Shared.Core.Domain;
 
 namespace Inventory.Application.Items.Commands;
 
-public record AdjustStockCommand(Guid ProductId, AdjustStockRequest Request)
-    : ICommand<Result<InventoryItemResponse>>;
+public record AdjustStockCommand(Guid ProductId, AdjustStockInput Request)
+    : ICommand<Result<InventoryItemResult>>;
 
 public class AdjustStockHandler(IInventoryDbContext db, ILogger<AdjustStockHandler> logger)
-    : ICommandHandler<AdjustStockCommand, Result<InventoryItemResponse>>
+    : ICommandHandler<AdjustStockCommand, Result<InventoryItemResult>>
 {
-    public async Task<Result<InventoryItemResponse>> HandleAsync(AdjustStockCommand command, CancellationToken ct)
+    public async Task<Result<InventoryItemResult>> HandleAsync(AdjustStockCommand command, CancellationToken ct)
     {
         var item = await db.InventoryItems.SingleOrDefaultAsync(i => i.ProductId == command.ProductId, ct);
         if (item is null)
@@ -33,6 +34,6 @@ public class AdjustStockHandler(IInventoryDbContext db, ILogger<AdjustStockHandl
         logger.LogInformation("Adjusted stock for product {ProductId} to {OnHand}. Reason: {Reason}",
             command.ProductId, item.OnHand, command.Request.Reason ?? "(none)");
 
-        return item.ToCommandResponse();
+        return item.ToResult();
     }
 }

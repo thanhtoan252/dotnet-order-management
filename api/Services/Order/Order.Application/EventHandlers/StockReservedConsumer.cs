@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Order.Application.Abstractions;
 using Order.Application.Orders.Mappers;
+using Shared.Contracts;
 using Shared.Contracts.IntegrationEvents;
 using Shared.Core.CQRS;
 using Shared.Core.ValueObjects;
@@ -16,6 +17,8 @@ namespace Order.Application.EventHandlers;
 public class StockReservedConsumer(IOrderDbContext db, ILogger<StockReservedConsumer> logger)
     : IEventConsumer<StockReservedIntegrationEvent>
 {
+    public static string Topic => Topics.StockReserved;
+
     public async Task HandleAsync(StockReservedIntegrationEvent @event, CancellationToken ct = default)
     {
         logger.LogInformation("Stock reserved for order {OrderId}, auto-confirming", @event.OrderId);

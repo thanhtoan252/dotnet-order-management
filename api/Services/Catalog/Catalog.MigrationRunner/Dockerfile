@@ -20,8 +20,15 @@ COPY Services/Catalog/Catalog.MigrationRunner/Catalog.MigrationRunner.csproj Ser
 
 RUN dotnet restore Services/Catalog/Catalog.MigrationRunner/Catalog.MigrationRunner.csproj
 
-# Copy everything and build
-COPY . .
+# Copy only the source directories needed by this image
+COPY Shared/Shared.Core/ Shared/Shared.Core/
+COPY Shared/Shared.Contracts/ Shared/Shared.Contracts/
+COPY Shared/Shared.Messaging.Abstractions/ Shared/Shared.Messaging.Abstractions/
+COPY Shared/Shared.Messaging/ Shared/Shared.Messaging/
+COPY Services/Catalog/Catalog.Domain/ Services/Catalog/Catalog.Domain/
+COPY Services/Catalog/Catalog.Application/ Services/Catalog/Catalog.Application/
+COPY Services/Catalog/Catalog.Infrastructure/ Services/Catalog/Catalog.Infrastructure/
+COPY Services/Catalog/Catalog.MigrationRunner/ Services/Catalog/Catalog.MigrationRunner/
 WORKDIR /build/Services/Catalog/Catalog.MigrationRunner
 RUN dotnet publish -c Release -o /app/publish --no-restore
 

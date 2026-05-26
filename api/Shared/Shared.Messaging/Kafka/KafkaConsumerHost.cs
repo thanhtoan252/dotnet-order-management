@@ -16,18 +16,20 @@ namespace Shared.Messaging.Kafka;
 ///     Background service that consumes messages from a Kafka topic and dispatches to the registered handler.
 ///     Supports idempotency via ProcessedMessage table and retry with dead-letter topic.
 /// </summary>
-public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IIntegrationEvent
+public class KafkaConsumerHost<TEvent, THandler> : BackgroundService
+    where TEvent : IIntegrationEvent
+    where THandler : class, IEventConsumer<TEvent>
 {
     private readonly string _topic;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<KafkaConsumerHost<TEvent>> _logger;
+    private readonly ILogger<KafkaConsumerHost<TEvent, THandler>> _logger;
     private readonly KafkaOptions _options;
 
     public KafkaConsumerHost(
         string topic,
         IServiceScopeFactory scopeFactory,
         IOptions<KafkaOptions> options,
-        ILogger<KafkaConsumerHost<TEvent>> logger)
+        ILogger<KafkaConsumerHost<TEvent, THandler>> logger)
     {
         _topic = topic;
         _scopeFactory = scopeFactory;
@@ -39,15 +41,7 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
     {
         await Task.Yield();
 
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = _options.BootstrapServers,
-            GroupId = _options.GroupId,
-            AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false
-        };
-
-        using var consumer = new ConsumerBuilder<string, string>(config).Build();
+        using var consumer = CreateConsumer();
         consumer.Subscribe(_topic);
 
         _logger.LogInformation("Kafka consumer started for topic {Topic} with group {GroupId}", _topic,
@@ -57,63 +51,7 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
         {
             try
             {
-                var result = consumer.Consume(stoppingToken);
-                if (result?.Message?.Value is null)
-                {
-                    continue;
-                }
-
-                var parentContext = ExtractParentContext(result.Message.Headers);
-
-                using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
-                    $"{_topic} receive",
-                    ActivityKind.Consumer,
-                    parentContext);
-
-                activity?.SetTag("messaging.system", "kafka");
-                activity?.SetTag("messaging.destination.name", _topic);
-                activity?.SetTag("messaging.operation", "receive");
-                activity?.SetTag("messaging.kafka.consumer.group", _options.GroupId);
-                activity?.SetTag("messaging.kafka.destination.partition", result.Partition.Value);
-                activity?.SetTag("messaging.kafka.message.offset", result.Offset.Value);
-
-                var @event = JsonSerializer.Deserialize<TEvent>(result.Message.Value);
-                if (@event is null)
-                {
-                    _logger.LogWarning("Failed to deserialize message from {Topic}", _topic);
-                    consumer.Commit(result);
-                    continue;
-                }
-
-                using var scope = _scopeFactory.CreateScope();
-
-                // Idempotency check
-                var outboxStore = scope.ServiceProvider.GetRequiredService<IIdempotencyStore>();
-                if (await outboxStore.HasBeenProcessedAsync(@event.EventId, stoppingToken))
-                {
-                    _logger.LogDebug("Event {EventId} already processed, skipping", @event.EventId);
-                    consumer.Commit(result);
-                    continue;
-                }
-
-                var handled = await TryHandleWithRetryAsync(@event, stoppingToken);
-
-                if (handled)
-                {
-                    await outboxStore.MarkEventProcessedAsync(@event.EventId, typeof(TEvent).Name, stoppingToken);
-                    _logger.LogInformation("Processed {EventType} {EventId} from {Topic}",
-                        typeof(TEvent).Name, @event.EventId, _topic);
-                }
-                else
-                {
-                    activity?.SetStatus(ActivityStatusCode.Error, "Max retries exceeded");
-                    await PublishToDeadLetterAsync(result.Message, stoppingToken);
-                    _logger.LogError(
-                        "Message {EventId} from {Topic} moved to dead-letter topic after {MaxRetries} failed attempts",
-                        @event.EventId, _topic, _options.MaxRetryAttempts);
-                }
-
-                consumer.Commit(result);
+                await ConsumeNextAsync(consumer, stoppingToken);
             }
             catch (ConsumeException ex)
             {
@@ -129,6 +67,100 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
+    }
+
+    private IConsumer<string, string> CreateConsumer()
+    {
+        var config = new ConsumerConfig
+        {
+            BootstrapServers = _options.BootstrapServers,
+            GroupId = _options.GroupId,
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = false
+        };
+
+        return new ConsumerBuilder<string, string>(config).Build();
+    }
+
+    private async Task ConsumeNextAsync(IConsumer<string, string> consumer, CancellationToken stoppingToken)
+    {
+        var result = consumer.Consume(stoppingToken);
+        if (result?.Message?.Value is null)
+        {
+            return;
+        }
+
+        using var activity = StartReceiveActivity(result);
+
+        var @event = JsonSerializer.Deserialize<TEvent>(result.Message.Value);
+        if (@event is null)
+        {
+            _logger.LogWarning("Failed to deserialize message from {Topic}", _topic);
+            consumer.Commit(result);
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var idempotencyStore = scope.ServiceProvider.GetRequiredService<IIdempotencyStore>();
+
+        if (await idempotencyStore.HasBeenProcessedAsync(@event.EventId, stoppingToken))
+        {
+            _logger.LogDebug("Event {EventId} already processed, skipping", @event.EventId);
+            consumer.Commit(result);
+            return;
+        }
+
+        var handled = await TryHandleWithRetryAsync(@event, stoppingToken);
+
+        if (handled)
+        {
+            await idempotencyStore.MarkEventProcessedAsync(@event.EventId, typeof(TEvent).Name, stoppingToken);
+            _logger.LogInformation("Processed {EventType} {EventId} from {Topic}",
+                typeof(TEvent).Name, @event.EventId, _topic);
+        }
+        else
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, "Max retries exceeded");
+            await PublishToDeadLetterAsync(result.Message, stoppingToken);
+            _logger.LogError(
+                "Message {EventId} from {Topic} moved to dead-letter topic after {MaxRetries} failed attempts",
+                @event.EventId, _topic, _options.MaxRetryAttempts);
+        }
+
+        consumer.Commit(result);
+    }
+
+    private Activity? StartReceiveActivity(ConsumeResult<string, string> result)
+    {
+        var parentContext = ExtractParentContext(result.Message.Headers);
+
+        var activity = MessagingDiagnostics.ActivitySource.StartActivity(
+            $"{_topic} receive",
+            ActivityKind.Consumer,
+            parentContext);
+
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination.name", _topic);
+        activity?.SetTag("messaging.operation", "receive");
+        activity?.SetTag("messaging.kafka.consumer.group", _options.GroupId);
+        activity?.SetTag("messaging.kafka.destination.partition", result.Partition.Value);
+        activity?.SetTag("messaging.kafka.message.offset", result.Offset.Value);
+
+        return activity;
+    }
+
+    private Activity? StartDlqPublishActivity(string dlqTopic)
+    {
+        var activity = MessagingDiagnostics.ActivitySource.StartActivity(
+            $"{dlqTopic} publish",
+            ActivityKind.Producer);
+
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination.name", dlqTopic);
+        activity?.SetTag("messaging.operation", "publish");
+        activity?.SetTag("messaging.kafka.dlq.original_topic", _topic);
+
+        return activity;
     }
 
     private static ActivityContext ExtractParentContext(Headers? headers)
@@ -167,7 +199,7 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
             try
             {
                 using var scope = _scopeFactory.CreateScope();
-                var handler = scope.ServiceProvider.GetRequiredService<Abstractions.IEventConsumer<TEvent>>();
+                var handler = scope.ServiceProvider.GetRequiredService<THandler>();
                 await handler.HandleAsync(@event, ct);
                 return true;
             }
@@ -192,14 +224,7 @@ public class KafkaConsumerHost<TEvent> : BackgroundService where TEvent : IInteg
     {
         var dlqTopic = $"{_options.DeadLetterTopicPrefix}{_topic}";
 
-        using var activity = MessagingDiagnostics.ActivitySource.StartActivity(
-            $"{dlqTopic} publish",
-            ActivityKind.Producer);
-
-        activity?.SetTag("messaging.system", "kafka");
-        activity?.SetTag("messaging.destination.name", dlqTopic);
-        activity?.SetTag("messaging.operation", "publish");
-        activity?.SetTag("messaging.kafka.dlq.original_topic", _topic);
+        using var activity = StartDlqPublishActivity(dlqTopic);
 
         var producerConfig = new ProducerConfig
         {
