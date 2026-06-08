@@ -1,59 +1,88 @@
-# UiAngular
+# Order Management UI
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.13.
+Angular 21 single-page application for the Order Management Microservices demo. The UI talks only to the API Gateway, not directly to individual services.
 
-## Development server
+## Stack
 
-To start a local development server, run:
+| Area | Technology |
+|---|---|
+| Framework | Angular 21 standalone components, zoneless change detection, Angular Router |
+| UI | PrimeNG 21, PrimeIcons, Lucide Angular, Tailwind CSS 4 |
+| Server state | TanStack Angular Query |
+| Forms | Angular Reactive Forms |
+| Validation | Zod schemas and custom form validators |
+| HTTP | Angular HttpClient with auth and error interceptors |
+| Tests | Vitest through Angular CLI |
 
-```bash
-ng serve
+PrimeNG uses an Aura preset customized in `src/app/theme.ts` with an emerald primary color ramp. Global styles in `src/styles.css` put PrimeNG in a CSS layer before Tailwind utilities so layout and spacing utilities can override component defaults.
+
+## Features
+
+- Login form backed by `/api/auth/login`
+- Authenticated app shell with responsive sidebar and topbar
+- Products page with CRUD actions and `.xlsx` import
+- Orders page with create, cancel, confirm, ship, and deliver workflows
+- Inventory page with receive and adjust stock actions
+- Admin-only users page for Keycloak user, password, and role management
+- PrimeNG DynamicDialog-based forms and confirmation dialogs
+- PrimeNG toast notifications through `NotificationService`
+- API cache, loading, error, and mutation state via TanStack Angular Query
+
+## Project Layout
+
+```text
+src/app/
+  core/
+    auth/          auth service, guards, token storage, permissions
+    http/          interceptors and API error helpers
+    layout/        shell, sidebar, topbar, navigation model
+  features/
+    auth/          login route and form
+    products/      catalog pages, tables, dialogs, API/query layer
+    orders/        order pages, tables, dialogs, API/query layer
+    inventory/     stock pages, tables, dialogs, API/query layer
+    users/         admin user management pages, tables, dialogs, API/query layer
+  shared/
+    ui/            shared dialogs
+    validation/    reusable validation helpers
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Each feature keeps its route definition, page component, data access, models, validation schemas, and feature-specific components together.
 
-## Code scaffolding
+## Configuration
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+The development API base URL is in `src/environments/environment.ts`:
 
-```bash
-ng generate component component-name
+```ts
+apiBaseUrl: 'http://localhost:8080/api'
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Docker serves the built UI through Nginx and proxies API calls to the gateway according to `nginx.conf`.
+
+## Development
+
+Install dependencies:
 
 ```bash
-ng generate --help
+npm install
 ```
 
-## Building
-
-To build the project run:
+Start the local development server on port 3000:
 
 ```bash
-ng build
+npm start
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Build the app:
 
 ```bash
-ng test
+npm run build
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Run unit tests:
 
 ```bash
-ng e2e
+npm test
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The app expects the gateway and supporting services to be available from the repository-level Docker Compose setup.

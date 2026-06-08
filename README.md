@@ -80,7 +80,7 @@ Messaging infrastructure includes an outbox processor, processed-message idempot
 | API contracts | OpenAPI YAML contracts with NSwag DTO generation |
 | Realtime | SignalR notification hub |
 | Observability | OpenTelemetry 1.15, Serilog, Tempo, Loki, Prometheus, Grafana |
-| Frontend | Angular 21, TypeScript 5.9, Angular Material, Tailwind CSS 4, Lucide Angular |
+| Frontend | Angular 21, TypeScript 5.9, PrimeNG 21, Tailwind CSS 4, TanStack Angular Query, Zod, Lucide Angular |
 
 ## Project Layout
 
@@ -309,13 +309,16 @@ APIs validate JWT bearer tokens issued by the `order-management` Keycloak realm.
 The Angular SPA includes:
 
 - Login via `/api/auth/login`
-- Router-based navigation for products, orders, inventory, and users
+- Authenticated shell with responsive sidebar/topbar navigation for products, orders, inventory, and users
 - Product CRUD plus `.xlsx` import
 - Order list, place/cancel actions, and admin lifecycle actions
 - Inventory stock receive/adjust workflows
-- Admin user management for Keycloak users and roles
+- Admin user management for Keycloak users, passwords, and realm roles
 - HTTP client with ProblemDetails handling and auth token interceptor
-- Toast notifications through Angular Material snackbar
+- TanStack Angular Query for API cache, refetch, and mutation state
+- Reactive Forms validated with Zod schemas
+- PrimeNG tables, dialogs, inputs, buttons, toasts, and an Aura-based emerald theme layered with Tailwind CSS utilities
+- Lucide icons for navigation and action controls
 
 ## Observability
 
