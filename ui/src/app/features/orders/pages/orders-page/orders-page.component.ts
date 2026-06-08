@@ -70,7 +70,7 @@ export class OrdersPageComponent {
       data: {
         title: 'Delete Order',
         message: `Order ${order.orderNumber} will be permanently deleted. This cannot be undone.`,
-        confirmText: 'Delete Order',
+        confirmText: 'Confirm',
         danger: true,
       },
     });

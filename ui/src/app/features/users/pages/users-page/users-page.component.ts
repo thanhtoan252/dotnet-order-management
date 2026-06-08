@@ -102,7 +102,7 @@ export class UsersPageComponent {
       data: {
         title: 'Delete User',
         message: `Delete user "${user.username}"? This permanently removes them from Keycloak and cannot be undone.`,
-        confirmText: 'Delete User',
+        confirmText: 'Confirm',
         danger: true,
       },
     });

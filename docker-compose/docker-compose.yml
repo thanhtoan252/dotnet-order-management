@@ -381,10 +381,10 @@ services:
       dockerfile: Dockerfile
     container_name: order-ui
     ports:
-      - "3000:80"
+      - "4200:80"
     depends_on:
       - api-gateway
-    restart: unless-stopped
+    restart: unless-stoppedß
 
   # ─── Keycloak Database (PostgreSQL) ───────────────────────────────────────────
   keycloak-db:

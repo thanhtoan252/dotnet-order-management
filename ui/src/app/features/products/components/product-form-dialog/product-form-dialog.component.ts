@@ -43,7 +43,7 @@ export class ProductFormDialogComponent {
   constructor() {
     const p = this.data.product;
     if (this.data.mode === 'edit' && p) {
-      this.form.patchValue({ name: p.name, price: p.price, currency: p.currency });
+      this.form.patchValue({ name: p.name, sku: p.sku, price: p.price, currency: p.currency });
       // SKU and initial stock are not editable on an existing product.
       this.form.controls.sku.disable();
       this.form.controls.initialStockQuantity.disable();

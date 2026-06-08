@@ -14,3 +14,8 @@ body {
   background: var(--p-content-background);
   color: var(--p-text-color);
 }
+
+.p-tooltip .p-tooltip-text {
+  max-width: none;
+  white-space: nowrap;
+}

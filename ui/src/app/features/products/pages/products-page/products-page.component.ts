@@ -73,7 +73,7 @@ export class ProductsPageComponent {
       data: {
         title: 'Delete Product',
         message: `"${product.name}" (SKU: ${product.sku}) will be permanently removed. This action cannot be undone.`,
-        confirmText: 'Delete Product',
+        confirmText: 'Confirm',
         danger: true,
       },
     });
