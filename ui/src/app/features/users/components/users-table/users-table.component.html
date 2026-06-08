@@ -1,0 +1,109 @@
+@if (loading() && users().length === 0) {
+  <div class="py-16 text-center text-sm opacity-50">Loading…</div>
+} @else if (users().length === 0) {
+  <div class="py-16 text-center">
+    <lucide-icon [img]="UsersIcon" class="mx-auto mb-3 h-10 w-10 opacity-30" />
+    <p class="font-medium opacity-70">No users found</p>
+    <p class="mt-1 text-sm opacity-50">Try adjusting your search or add a new user.</p>
+  </div>
+} @else {
+  <p-table [value]="users()" styleClass="w-full" [tableStyle]="{ 'min-width': '56rem' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="username">Username <p-sortIcon field="username" /></th>
+        <th>Name</th>
+        <th pSortableColumn="email">Email <p-sortIcon field="email" /></th>
+        <th pSortableColumn="enabled">Status <p-sortIcon field="enabled" /></th>
+        <th>Roles</th>
+        @if (canManage()) {
+          <th class="text-right">Actions</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-u>
+      <tr>
+        <td class="font-medium">{{ u.username }}</td>
+        <td>{{ fullName(u) || '-' }}</td>
+        <td>{{ u.email || '-' }}</td>
+        <td>
+          @if (u.enabled) {
+            <span
+              class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+            >
+              <lucide-icon [img]="CheckCircle2" class="h-3 w-3" /> Enabled
+            </span>
+          } @else {
+            <span
+              class="inline-flex items-center gap-1 rounded bg-black/5 px-2 py-0.5 text-xs font-medium opacity-70"
+            >
+              <lucide-icon [img]="XCircle" class="h-3 w-3" /> Disabled
+            </span>
+          }
+        </td>
+        <td>
+          <div class="flex flex-wrap gap-1 py-1">
+            @for (r of u.roles; track r) {
+              <span
+                class="rounded px-2 py-0.5 text-[11px] font-medium"
+                [class]="r === 'admin' ? 'bg-indigo-50 text-indigo-700' : 'bg-black/5 opacity-70'"
+              >
+                {{ r }}
+              </span>
+            } @empty {
+              <span class="text-xs opacity-40">none</span>
+            }
+          </div>
+        </td>
+        @if (canManage()) {
+          <td class="text-right whitespace-nowrap">
+            <button
+              type="button"
+              pTooltip="Edit profile"
+              aria-label="Edit profile"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="edit.emit(u)"
+            >
+              <lucide-icon [img]="Pencil" class="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              pTooltip="Manage roles"
+              aria-label="Manage roles"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="manageRoles.emit(u)"
+            >
+              <lucide-icon [img]="ShieldCheck" class="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              pTooltip="Reset password"
+              aria-label="Reset password"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="resetPassword.emit(u)"
+            >
+              <lucide-icon [img]="KeyRound" class="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              pTooltip="Delete user"
+              aria-label="Delete user"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="remove.emit(u)"
+            >
+              <lucide-icon [img]="Trash2" class="h-4 w-4" />
+            </button>
+          </td>
+        }
+      </tr>
+    </ng-template>
+  </p-table>
+
+  @if (loading()) {
+    <div
+      class="border-t py-3 text-center text-xs opacity-50"
+      style="border-color: var(--p-content-border-color)"
+    >
+      Refreshing…
+    </div>
+  }
+}

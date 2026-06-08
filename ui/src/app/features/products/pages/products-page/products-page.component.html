@@ -1,0 +1,43 @@
+<div class="flex flex-col gap-5">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-bold">Products</h2>
+      <p class="mt-0.5 text-sm opacity-60">
+        {{ count() }} product{{ count() !== 1 ? 's' : '' }} total
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <p-button [outlined]="true" [disabled]="products.isFetching()" (onClick)="products.refetch()">
+        <lucide-icon
+          [img]="RefreshCw"
+          class="mr-1 h-4 w-4"
+          [class.animate-spin]="products.isFetching()"
+        />
+        Refresh
+      </p-button>
+      @if (perms.canManageProducts()) {
+        <p-button [outlined]="true" (onClick)="openImport()">
+          <lucide-icon [img]="Upload" class="mr-1 h-4 w-4" />
+          Import .xlsx
+        </p-button>
+        <p-button (onClick)="openCreate()">
+          <lucide-icon [img]="Plus" class="mr-1 h-4 w-4" />
+          Add Product
+        </p-button>
+      }
+    </div>
+  </div>
+
+  <div
+    class="overflow-hidden rounded-xl border shadow-sm"
+    style="border-color: var(--p-content-border-color); background: var(--p-content-background)"
+  >
+    <app-products-table
+      [products]="products.data() ?? []"
+      [loading]="products.isFetching()"
+      [canManage]="perms.canManageProducts()"
+      (edit)="openEdit($event)"
+      (remove)="confirmDelete($event)"
+    />
+  </div>
+</div>

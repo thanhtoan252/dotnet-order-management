@@ -1,0 +1,69 @@
+<div class="flex min-h-screen items-center justify-center px-4">
+  <div class="w-full max-w-sm">
+    <div class="mb-8 flex flex-col items-center gap-3">
+      <div
+        class="flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg"
+        style="background: var(--p-primary-color)"
+      >
+        <lucide-icon
+          [img]="LayoutGrid"
+          class="h-6 w-6"
+          style="color: var(--p-primary-contrast-color)"
+        />
+      </div>
+      <div class="text-center">
+        <h1 class="text-xl font-bold">Order Management</h1>
+        <p class="text-sm opacity-60">Sign in to continue</p>
+      </div>
+    </div>
+
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      class="flex flex-col gap-2 rounded-xl border p-6 shadow-sm"
+      style="border-color: var(--p-content-border-color); background: var(--p-content-background)"
+    >
+      @if (error()) {
+        <div
+          class="mb-2 rounded-lg px-3 py-2 text-sm"
+          style="background: var(--p-red-100); color: var(--p-red-700)"
+        >
+          {{ error() }}
+        </div>
+      }
+
+      <div class="flex flex-col gap-1.5">
+        <label for="username" class="text-sm font-medium">Username</label>
+        <input
+          pInputText
+          id="username"
+          formControlName="username"
+          autocomplete="username"
+          class="w-full"
+        />
+      </div>
+
+      <div class="mt-2 flex flex-col gap-1.5">
+        <label for="password" class="text-sm font-medium">Password</label>
+        <p-password
+          inputId="password"
+          formControlName="password"
+          [feedback]="false"
+          [toggleMask]="true"
+          autocomplete="current-password"
+          styleClass="w-full"
+          inputStyleClass="w-full"
+        />
+      </div>
+
+      <p-button
+        type="submit"
+        [label]="loading() ? 'Signing in...' : 'Sign in'"
+        [disabled]="loading()"
+        styleClass="mt-3 w-full"
+      />
+
+      <p class="mt-4 text-center text-xs opacity-50">admin / admin123 &middot; user / user123</p>
+    </form>
+  </div>
+</div>

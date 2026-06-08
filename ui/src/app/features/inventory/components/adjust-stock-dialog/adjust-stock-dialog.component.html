@@ -1,0 +1,44 @@
+<div class="flex flex-col gap-3 pt-1">
+  <div class="rounded-lg px-3 py-2 text-xs" style="background: var(--p-surface-100)">
+    {{ item.productName }} <span class="ml-2 font-mono">{{ item.sku }}</span>
+    <div class="mt-1">
+      Current on hand: <span class="font-semibold">{{ item.onHand }}</span>
+    </div>
+  </div>
+  <form [formGroup]="form" class="flex flex-col gap-3">
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">New on-hand quantity</label>
+      <input pInputText type="number" min="0" formControlName="onHand" class="w-full" />
+      @if (form.controls.onHand.hasError('zod')) {
+        <small class="text-red-500">{{ form.controls.onHand.getError('zod') }}</small>
+      }
+      @if (delta() !== 0) {
+        <small [style.color]="delta() > 0 ? 'var(--p-primary-color)' : 'var(--p-red-500)'">
+          Change: {{ delta() > 0 ? '+' + delta() : delta() }} units
+        </small>
+      }
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Reason</label>
+      <input
+        pInputText
+        formControlName="reason"
+        placeholder="e.g. Cycle count correction"
+        class="w-full"
+      />
+      @if (form.controls.reason.hasError('zod')) {
+        <small class="text-red-500">{{ form.controls.reason.getError('zod') }}</small>
+      }
+    </div>
+  </form>
+</div>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="mut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button label="Adjust" [disabled]="mut.isPending()" (onClick)="submit()" />
+</div>

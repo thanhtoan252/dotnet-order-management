@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
-![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Angular 21](https://img.shields.io/badge/Angular-21-DD0031?logo=angular)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
 ![Keycloak](https://img.shields.io/badge/Keycloak-26.0-4D4D4D?logo=keycloak)
 ![Kafka](https://img.shields.io/badge/Kafka-KRaft-231F20?logo=apachekafka)
@@ -12,7 +12,7 @@ Order Management Microservices is a full-stack showcase for a .NET 10 microservi
 ## Architecture
 
 ```text
-React UI :3000
+Angular UI :3000
     |
 API Gateway :8080
     |-- /api/auth/login
@@ -80,7 +80,7 @@ Messaging infrastructure includes an outbox processor, processed-message idempot
 | API contracts | OpenAPI YAML contracts with NSwag DTO generation |
 | Realtime | SignalR notification hub |
 | Observability | OpenTelemetry 1.15, Serilog, Tempo, Loki, Prometheus, Grafana |
-| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, Lucide React, Sonner |
+| Frontend | Angular 21, TypeScript 5.9, Angular Material, Tailwind CSS 4, Lucide Angular |
 
 ## Project Layout
 
@@ -108,12 +108,17 @@ docker-compose/
 keycloak/
   realm-export.json
 ui/
-  src/features/
-    auth/
-    order-management/
-    product-management/
-    inventory-management/
-    user-management/
+  src/app/
+    core/
+      auth/
+      http/
+      layout/
+    features/
+      orders/
+      products/
+      inventory/
+      users/
+    shared/
 ```
 
 Each business service follows the same general shape:
@@ -132,7 +137,7 @@ Identity has no Domain or database layer; it delegates user and role operations 
 ### Prerequisites
 
 - .NET 10 SDK
-- Node.js 20+
+- Node.js 22+
 - Docker and Docker Compose
 
 ### Environment
@@ -148,11 +153,7 @@ IDENTITY_API_CLIENT_SECRET=identity-api-secret
 ASPNETCORE_ENVIRONMENT=Docker-Compose
 ```
 
-Create `ui/.env.local` when running the UI outside Docker:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080/api
-```
+When running the UI outside Docker, the API base URL is configured in `ui/src/environments/environment.ts` (defaults to `http://localhost:8080/api`).
 
 ### Run the Full Stack
 
@@ -213,7 +214,7 @@ Run the UI:
 ```bash
 cd ui
 npm install
-npm run dev
+npm start
 ```
 
 ## API Surface
@@ -305,16 +306,16 @@ APIs validate JWT bearer tokens issued by the `order-management` Keycloak realm.
 
 ## Frontend
 
-The React SPA includes:
+The Angular SPA includes:
 
 - Login via `/api/auth/login`
-- Hash-based navigation for products, orders, inventory, and users
-- Product CRUD plus `.xlsx` import using `public/products-template.xlsx`
+- Router-based navigation for products, orders, inventory, and users
+- Product CRUD plus `.xlsx` import
 - Order list, place/cancel actions, and admin lifecycle actions
 - Inventory stock receive/adjust workflows
 - Admin user management for Keycloak users and roles
-- Custom fetch API client with ProblemDetails handling and request timeout
-- Toast notifications through Sonner
+- HTTP client with ProblemDetails handling and auth token interceptor
+- Toast notifications through Angular Material snackbar
 
 ## Observability
 
@@ -350,7 +351,6 @@ dotnet build api/OrderManagement.slnx
 # Frontend
 cd ui
 npm run build
-npm run lint
 ```
 
 Add EF Core migrations:

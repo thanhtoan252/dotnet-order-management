@@ -1,0 +1,64 @@
+@if (loading() && products().length === 0) {
+  <div class="py-16 text-center text-sm opacity-50">Loading…</div>
+} @else if (products().length === 0) {
+  <div class="py-16 text-center">
+    <lucide-icon [img]="Package" class="mx-auto mb-3 h-10 w-10 opacity-30" />
+    <p class="font-medium opacity-70">No products yet</p>
+    <p class="mt-1 text-sm opacity-50">Click "Add Product" to create one.</p>
+  </div>
+} @else {
+  <p-table [value]="products()" styleClass="w-full" [tableStyle]="{ 'min-width': '40rem' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+        <th pSortableColumn="sku">SKU <p-sortIcon field="sku" /></th>
+        <th pSortableColumn="price">Price <p-sortIcon field="price" /></th>
+        @if (canManage()) {
+          <th class="text-right">Actions</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-p>
+      <tr>
+        <td class="font-medium">{{ p.name }}</td>
+        <td>
+          <span class="rounded bg-black/5 px-2 py-0.5 font-mono text-xs">{{ p.sku }}</span>
+        </td>
+        <td>
+          {{ p.currency }} <span class="font-medium">{{ p.price.toFixed(2) }}</span>
+        </td>
+        @if (canManage()) {
+          <td class="text-right">
+            <button
+              type="button"
+              pTooltip="Edit product"
+              aria-label="Edit product"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="edit.emit(p)"
+            >
+              <lucide-icon [img]="Pencil" class="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              pTooltip="Delete product"
+              aria-label="Delete product"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="remove.emit(p)"
+            >
+              <lucide-icon [img]="Trash2" class="h-4 w-4" />
+            </button>
+          </td>
+        }
+      </tr>
+    </ng-template>
+  </p-table>
+
+  @if (loading()) {
+    <div
+      class="border-t py-3 text-center text-xs opacity-50"
+      style="border-color: var(--p-content-border-color)"
+    >
+      Refreshing…
+    </div>
+  }
+}

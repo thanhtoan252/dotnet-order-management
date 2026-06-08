@@ -1,0 +1,51 @@
+<header
+  class="flex h-16 flex-shrink-0 items-center gap-4 border-b px-4 lg:px-6"
+  style="background: var(--p-content-background); border-color: var(--p-content-border-color)"
+>
+  <!-- Mobile hamburger -->
+  <button
+    type="button"
+    aria-label="Open navigation menu"
+    class="-ml-1 rounded-lg p-2 opacity-70 hover:opacity-100 lg:hidden"
+    (click)="menu.emit()"
+  >
+    <lucide-icon [img]="Menu" class="h-5 w-5" />
+  </button>
+
+  <!-- Page title -->
+  <div class="flex items-center gap-2.5">
+    <div
+      class="flex h-8 w-8 items-center justify-center rounded-lg"
+      style="background: var(--p-surface-100)"
+    >
+      <lucide-icon [img]="current().icon" class="h-4 w-4" style="color: var(--p-text-color)" />
+    </div>
+    <div>
+      <h1 class="text-sm font-semibold leading-tight">{{ current().label }}</h1>
+      <p class="hidden text-xs leading-tight opacity-50 sm:block">{{ current().description }}</p>
+    </div>
+  </div>
+
+  <!-- User -->
+  <div
+    class="ml-auto flex items-center gap-2 border-l pl-4"
+    style="border-color: var(--p-content-border-color)"
+  >
+    <div
+      class="flex h-7 w-7 items-center justify-center rounded-full"
+      style="background: var(--p-surface-100)"
+    >
+      <lucide-icon [img]="User" class="h-3.5 w-3.5" style="color: var(--p-text-color)" />
+    </div>
+    <span class="hidden text-xs font-medium sm:inline">{{ username() }}</span>
+    <button
+      type="button"
+      aria-label="Log out"
+      title="Logout"
+      class="rounded-lg p-2 opacity-70 hover:opacity-100"
+      (click)="logout.emit()"
+    >
+      <lucide-icon [img]="LogOut" class="h-4 w-4" />
+    </button>
+  </div>
+</header>

@@ -1,0 +1,70 @@
+<form [formGroup]="form" class="flex flex-col gap-3 pt-1">
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">Name</label>
+    <input pInputText formControlName="name" placeholder="e.g. Widget Pro" class="w-full" />
+    @if (form.controls.name.hasError('zod')) {
+      <small class="text-red-500">{{ form.controls.name.getError('zod') }}</small>
+    }
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">SKU</label>
+    <input pInputText formControlName="sku" placeholder="e.g. PROD-001" class="w-full" />
+    @if (form.controls.sku.hasError('zod')) {
+      <small class="text-red-500">{{ form.controls.sku.getError('zod') }}</small>
+    }
+  </div>
+
+  <div class="grid grid-cols-2 gap-3">
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Price</label>
+      <input
+        pInputText
+        type="number"
+        min="0.01"
+        step="0.01"
+        formControlName="price"
+        class="w-full"
+      />
+      @if (form.controls.price.hasError('zod')) {
+        <small class="text-red-500">{{ form.controls.price.getError('zod') }}</small>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Currency</label>
+      <input pInputText formControlName="currency" class="w-full" />
+    </div>
+  </div>
+
+  @if (!isEdit()) {
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Initial Stock Quantity</label>
+      <input
+        pInputText
+        type="number"
+        min="0"
+        formControlName="initialStockQuantity"
+        class="w-full"
+      />
+      <small class="opacity-60"
+        >Seeds inventory on creation. Adjust later from the Inventory page.</small
+      >
+    </div>
+  }
+</form>
+
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="pending()"
+    (onClick)="cancel()"
+  />
+  <p-button
+    [label]="isEdit() ? 'Save Changes' : 'Create Product'"
+    [disabled]="pending()"
+    (onClick)="submit()"
+  />
+</div>

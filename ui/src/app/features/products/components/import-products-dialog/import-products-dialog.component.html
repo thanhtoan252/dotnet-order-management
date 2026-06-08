@@ -1,0 +1,87 @@
+<div class="flex flex-col gap-3 pt-1">
+  <p class="text-sm opacity-70">
+    Upload an <span class="font-medium">.xlsx</span> file with columns:
+    <span class="rounded bg-black/5 px-1 py-0.5 font-mono text-xs">
+      Name, SKU, Price, Currency, Description, InitialStockQuantity </span
+    >. Max 5 MB.
+  </p>
+
+  <a
+    href="/products-template.xlsx"
+    download
+    class="inline-flex items-center gap-1.5 text-xs font-medium"
+    style="color: var(--p-primary-color)"
+  >
+    <lucide-icon [img]="Download" class="h-3.5 w-3.5" />
+    Download template
+  </a>
+
+  <input #fileInput type="file" [accept]="accept" class="hidden" (change)="onFileChange($event)" />
+  <button
+    type="button"
+    class="w-full cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors hover:bg-black/[0.02]"
+    style="border-color: var(--p-content-border-color)"
+    (click)="fileInput.click()"
+  >
+    @if (file(); as f) {
+      <div class="flex items-center justify-center gap-2 text-sm">
+        <lucide-icon [img]="FileSpreadsheet" class="h-5 w-5 flex-shrink-0 text-green-600" />
+        <span class="font-medium">{{ f.name }}</span>
+        <span class="opacity-50">({{ (f.size / 1024).toFixed(1) }} KB)</span>
+      </div>
+    } @else {
+      <div class="flex flex-col items-center gap-2 opacity-50">
+        <lucide-icon [img]="Upload" class="h-8 w-8" />
+        <span class="text-sm">Click to select a file</span>
+      </div>
+    }
+  </button>
+
+  @if (clientError()) {
+    <div
+      class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm"
+      style="background: var(--p-red-100); color: var(--p-red-700)"
+    >
+      <lucide-icon [img]="TriangleAlert" class="h-4 w-4 flex-shrink-0" />
+      {{ clientError() }}
+    </div>
+  }
+
+  @if (rowErrors().length || fileErrors().length) {
+    <div class="rounded-lg p-3" style="background: var(--p-red-100); color: var(--p-red-700)">
+      @for (msg of fileErrors(); track $index) {
+        <p class="mb-1 text-sm font-medium">{{ msg }}</p>
+      }
+      @if (rowErrors().length) {
+        <p class="mb-2 text-sm font-medium">
+          {{ rowErrors().length }} row error{{ rowErrors().length !== 1 ? 's' : '' }} found — fix
+          and re-upload:
+        </p>
+        <ul class="max-h-48 space-y-1 overflow-y-auto">
+          @for (err of rowErrors(); track $index) {
+            <li class="text-xs">
+              <span class="font-semibold">Row {{ err.rowNumber }}</span> &mdash;
+              <span class="capitalize">{{ err.field }}</span
+              >: {{ err.message }}
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</div>
+
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="importMut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button
+    [label]="importMut.isPending() ? 'Importing…' : 'Import'"
+    [disabled]="importMut.isPending() || !file()"
+    (onClick)="doImport()"
+  />
+</div>

@@ -1,0 +1,68 @@
+<form [formGroup]="form" class="flex flex-col gap-3 pt-1">
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">Customer ID</label>
+    <input pInputText formControlName="customerId" class="w-full" />
+  </div>
+
+  <div formGroupName="shippingAddress" class="grid grid-cols-2 gap-3">
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Street</label>
+      <input pInputText formControlName="street" placeholder="123 Main St" class="w-full" />
+      @if (address.controls.street.hasError('zod')) {
+        <small class="text-red-500">{{ address.controls.street.getError('zod') }}</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">City</label>
+      <input pInputText formControlName="city" placeholder="City" class="w-full" />
+      @if (address.controls.city.hasError('zod')) {
+        <small class="text-red-500">{{ address.controls.city.getError('zod') }}</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Province</label>
+      <input pInputText formControlName="province" class="w-full" />
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Zip Code</label>
+      <input pInputText formControlName="zipCode" placeholder="12345" class="w-full" />
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">Product</label>
+    <p-select
+      formControlName="productId"
+      [options]="products.data() ?? []"
+      optionLabel="name"
+      optionValue="id"
+      placeholder="Select product"
+      styleClass="w-full"
+    >
+      <ng-template pTemplate="item" let-p>
+        <span>{{ p.name }} - {{ p.currency }} {{ p.price.toFixed(2) }}</span>
+      </ng-template>
+      <ng-template pTemplate="selectedItem" let-p>
+        <span>{{ p.name }} - {{ p.currency }} {{ p.price.toFixed(2) }}</span>
+      </ng-template>
+    </p-select>
+    @if (form.controls.productId.hasError('zod')) {
+      <small class="text-red-500">{{ form.controls.productId.getError('zod') }}</small>
+    }
+  </div>
+
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">Quantity</label>
+    <input pInputText type="number" min="1" formControlName="quantity" class="w-full" />
+  </div>
+</form>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="mut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button label="Place Order" [disabled]="mut.isPending()" (onClick)="submit()" />
+</div>

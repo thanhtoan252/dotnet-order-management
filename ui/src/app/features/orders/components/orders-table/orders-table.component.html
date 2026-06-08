@@ -1,0 +1,166 @@
+@if (loading() && orders().length === 0) {
+  <div class="py-16 text-center text-sm opacity-50">Loading…</div>
+} @else if (orders().length === 0) {
+  <div class="py-16 text-center">
+    <lucide-icon [img]="ShoppingBag" class="mx-auto mb-3 h-10 w-10 opacity-30" />
+    <p class="font-medium opacity-70">No orders yet</p>
+    <p class="mt-1 text-sm opacity-50">Click "New Order" to place one.</p>
+  </div>
+} @else {
+  <p-table [value]="orders()" styleClass="w-full" [tableStyle]="{ 'min-width': '56rem' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th class="w-10"></th>
+        <th>Order #</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Items</th>
+        <th>Total</th>
+        @if (canManage()) {
+          <th class="text-right">Actions</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-o>
+      <tr>
+        <td class="w-10">
+          <button
+            type="button"
+            class="rounded-lg p-2 opacity-70 hover:opacity-100"
+            [attr.aria-label]="isExpanded(o) ? 'Collapse order details' : 'Expand order details'"
+            [attr.aria-expanded]="isExpanded(o)"
+            (click)="toggle(o)"
+          >
+            <lucide-icon [img]="isExpanded(o) ? ChevronUp : ChevronDown" class="h-4 w-4" />
+          </button>
+        </td>
+        <td>
+          <span class="rounded bg-black/5 px-2 py-0.5 font-mono text-xs font-semibold">{{
+            o.orderNumber
+          }}</span>
+        </td>
+        <td class="whitespace-nowrap text-xs opacity-60">{{ o.createdAt | date: 'medium' }}</td>
+        <td>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+            [class]="style(o).badge"
+          >
+            <span class="h-1.5 w-1.5 rounded-full" [class]="style(o).dot"></span>
+            {{ o.status }}
+          </span>
+        </td>
+        <td>{{ itemCount(o) }}</td>
+        <td class="font-medium">{{ o.currency }} {{ o.totalAmount.toFixed(2) }}</td>
+        @if (canManage()) {
+          <td class="text-right whitespace-nowrap">
+            @if (o.status === 'Pending') {
+              <p-button [text]="true" severity="info" (onClick)="confirm.emit(o.id)">
+                <lucide-icon [img]="Check" class="mr-1 h-3 w-3" /> Confirm
+              </p-button>
+            } @else if (o.status === 'Confirmed') {
+              <p-button [text]="true" severity="help" (onClick)="ship.emit(o.id)">
+                <lucide-icon [img]="Truck" class="mr-1 h-3 w-3" /> Ship
+              </p-button>
+            } @else if (o.status === 'Shipped') {
+              <p-button [text]="true" severity="success" (onClick)="deliver.emit(o.id)">
+                <lucide-icon [img]="PackageCheck" class="mr-1 h-3 w-3" /> Deliver
+              </p-button>
+            }
+            @if (o.status === 'Pending' || o.status === 'Confirmed') {
+              <button
+                type="button"
+                pTooltip="Cancel order"
+                aria-label="Cancel order"
+                class="rounded-lg p-2 opacity-70 hover:opacity-100"
+                (click)="cancel.emit(o)"
+              >
+                <lucide-icon [img]="XCircle" class="h-4 w-4" />
+              </button>
+            }
+            <button
+              type="button"
+              pTooltip="Delete order"
+              aria-label="Delete order"
+              class="rounded-lg p-2 opacity-70 hover:opacity-100"
+              (click)="remove.emit(o)"
+            >
+              <lucide-icon [img]="Trash2" class="h-4 w-4" />
+            </button>
+          </td>
+        }
+      </tr>
+      @if (isExpanded(o)) {
+        <tr>
+          <td [attr.colspan]="canManage() ? 7 : 6" class="!p-0">
+            <div
+              class="border-y px-6 py-4"
+              style="background: var(--p-surface-50); border-color: var(--p-content-border-color)"
+            >
+              <div class="mb-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+                <div>
+                  <span class="font-semibold uppercase opacity-50">Customer</span>
+                  <p class="mt-0.5 break-all font-mono opacity-80">{{ o.customerId }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold uppercase opacity-50">Ship to</span>
+                  <p class="mt-0.5 opacity-80">{{ shipTo(o) }}</p>
+                </div>
+              </div>
+              <table
+                class="w-full overflow-hidden rounded-lg border text-xs"
+                style="border-color: var(--p-content-border-color)"
+              >
+                <thead>
+                  <tr style="background: var(--p-surface-100)">
+                    <th class="px-3 py-2 text-left font-semibold uppercase opacity-50">Product</th>
+                    <th class="px-3 py-2 text-left font-semibold uppercase opacity-50">Qty</th>
+                    <th class="px-3 py-2 text-left font-semibold uppercase opacity-50">
+                      Unit Price
+                    </th>
+                    <th class="px-3 py-2 text-left font-semibold uppercase opacity-50">
+                      Line Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of o.items; track $index) {
+                    <tr style="background: var(--p-content-background)">
+                      <td class="px-3 py-2 font-medium">{{ item.productName }}</td>
+                      <td class="px-3 py-2 opacity-70">{{ item.quantity }}</td>
+                      <td class="px-3 py-2 opacity-70">
+                        {{ item.currency }} {{ item.unitPrice.toFixed(2) }}
+                      </td>
+                      <td class="px-3 py-2 font-semibold">
+                        {{ item.currency }} {{ item.lineTotal.toFixed(2) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      }
+    </ng-template>
+  </p-table>
+
+  @if (loading()) {
+    <div
+      class="border-t py-3 text-center text-xs opacity-50"
+      style="border-color: var(--p-content-border-color)"
+    >
+      Loading…
+    </div>
+  } @else if (hasMore()) {
+    <div class="border-t py-3 text-center" style="border-color: var(--p-content-border-color)">
+      <p-button label="Load More" [outlined]="true" (onClick)="loadMore.emit()" />
+    </div>
+  } @else {
+    <p
+      class="border-t py-3 text-center text-xs opacity-40"
+      style="border-color: var(--p-content-border-color)"
+    >
+      All {{ orders().length }} orders loaded
+    </p>
+  }
+}

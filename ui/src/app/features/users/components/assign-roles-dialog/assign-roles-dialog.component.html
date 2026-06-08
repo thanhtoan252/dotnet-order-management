@@ -1,0 +1,180 @@
+<div style="width: 720px; max-width: 100%">
+  <div
+    class="mb-3 flex items-center justify-between rounded-lg px-3 py-2 text-xs"
+    style="background: var(--p-surface-100)"
+  >
+    <span
+      >User: <span class="font-mono font-semibold">{{ data.user.username }}</span></span
+    >
+    <span class="opacity-50">
+      {{
+        rolesQuery.isPending() ? 'Loading current roles…' : assignedCount() + ' role(s) assigned'
+      }}
+    </span>
+  </div>
+
+  @if (rolesQuery.isPending()) {
+    <div class="flex h-72 items-center justify-center">
+      <p-progressSpinner
+        ariaLabel="Loading current roles"
+        strokeWidth="4"
+        [style]="{ width: '28px', height: '28px' }"
+      />
+    </div>
+  } @else {
+    <div class="flex items-stretch gap-3">
+      <!-- Available -->
+      <div
+        class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border"
+        style="border-color: var(--p-content-border-color)"
+      >
+        <div
+          class="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide"
+          style="border-color: var(--p-content-border-color)"
+        >
+          Available Roles <span class="opacity-40">({{ availableRoles().length }})</span>
+        </div>
+        <div class="border-b px-2 py-2" style="border-color: var(--p-content-border-color)">
+          <div class="relative">
+            <lucide-icon
+              [img]="Search"
+              class="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-40"
+            />
+            <input
+              pInputText
+              class="w-full py-1.5 pl-7 pr-2 text-xs"
+              placeholder="Search roles…"
+              [value]="availableSearch()"
+              (input)="availableSearch.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <ul class="h-72 overflow-y-auto">
+          @for (r of availableRoles(); track r.id) {
+            <li
+              class="cursor-pointer border-b px-3 py-2 transition-colors"
+              style="border-color: var(--p-content-border-color)"
+              [style.background]="
+                availableSelected().has(r.name) ? 'var(--p-surface-100)' : 'transparent'
+              "
+              (click)="toggle(availableSelected, r.name)"
+              (dblclick)="moveToAssigned([r.name])"
+            >
+              <div class="text-sm font-medium">{{ r.name }}</div>
+              @if (r.description) {
+                <div class="mt-0.5 truncate text-xs opacity-50">{{ r.description }}</div>
+              }
+            </li>
+          } @empty {
+            <p class="py-8 text-center text-xs opacity-40">
+              {{ availableSearch() ? 'No matches' : 'All roles assigned' }}
+            </p>
+          }
+        </ul>
+      </div>
+
+      <!-- Arrows -->
+      <div class="flex flex-col justify-center gap-2">
+        <p-button
+          aria-label="Assign selected roles"
+          [outlined]="true"
+          (onClick)="moveToAssigned(asArray(availableSelected()))"
+          [disabled]="!availableSelected().size"
+          title="Assign selected"
+        >
+          <lucide-icon [img]="ChevronRight" class="h-4 w-4" />
+        </p-button>
+        <p-button
+          aria-label="Assign all roles"
+          [outlined]="true"
+          (onClick)="moveToAssigned(names(availableRoles()))"
+          [disabled]="!availableRoles().length"
+          title="Assign all"
+        >
+          <lucide-icon [img]="ChevronsRight" class="h-4 w-4" />
+        </p-button>
+        <p-button
+          aria-label="Unassign selected roles"
+          [outlined]="true"
+          (onClick)="moveToAvailable(asArray(assignedSelected()))"
+          [disabled]="!assignedSelected().size"
+          title="Unassign selected"
+        >
+          <lucide-icon [img]="ChevronLeft" class="h-4 w-4" />
+        </p-button>
+        <p-button
+          aria-label="Unassign all roles"
+          [outlined]="true"
+          (onClick)="moveToAvailable(names(assignedRoles()))"
+          [disabled]="!assignedRoles().length"
+          title="Unassign all"
+        >
+          <lucide-icon [img]="ChevronsLeft" class="h-4 w-4" />
+        </p-button>
+      </div>
+
+      <!-- Assigned -->
+      <div
+        class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border"
+        style="border-color: var(--p-content-border-color)"
+      >
+        <div
+          class="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide"
+          style="border-color: var(--p-content-border-color)"
+        >
+          Assigned Roles <span class="opacity-40">({{ assignedRoles().length }})</span>
+        </div>
+        <div class="border-b px-2 py-2" style="border-color: var(--p-content-border-color)">
+          <div class="relative">
+            <lucide-icon
+              [img]="Search"
+              class="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-40"
+            />
+            <input
+              pInputText
+              class="w-full py-1.5 pl-7 pr-2 text-xs"
+              placeholder="Search roles…"
+              [value]="assignedSearch()"
+              (input)="assignedSearch.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <ul class="h-72 overflow-y-auto">
+          @for (r of assignedRoles(); track r.id) {
+            <li
+              class="cursor-pointer border-b px-3 py-2 transition-colors"
+              style="border-color: var(--p-content-border-color)"
+              [style.background]="
+                assignedSelected().has(r.name) ? 'var(--p-surface-100)' : 'transparent'
+              "
+              (click)="toggle(assignedSelected, r.name)"
+              (dblclick)="moveToAvailable([r.name])"
+            >
+              <div class="text-sm font-medium">{{ r.name }}</div>
+              @if (r.description) {
+                <div class="mt-0.5 truncate text-xs opacity-50">{{ r.description }}</div>
+              }
+            </li>
+          } @empty {
+            <p class="py-8 text-center text-xs opacity-40">
+              {{ assignedSearch() ? 'No matches' : 'No roles assigned' }}
+            </p>
+          }
+        </ul>
+      </div>
+    </div>
+    <p class="mt-3 text-xs opacity-40">
+      Tip: click a role to select it, then use the arrows. Double-click to move it instantly.
+    </p>
+  }
+</div>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="mut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button label="Save Roles" [disabled]="mut.isPending() || !dirty()" (onClick)="save()" />
+</div>

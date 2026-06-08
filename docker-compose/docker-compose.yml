@@ -374,7 +374,7 @@ services:
       - ./logs/gateway:/app/logs
     restart: unless-stopped
 
-  # ─── React UI ───────────────────────────────────────────────────────────────
+  # ─── Angular UI ───────────────────────────────────────────────────────────────
   ui:
     build:
       context: ../ui

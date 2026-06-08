@@ -1,0 +1,14 @@
+<div class="flex h-screen overflow-hidden" style="background: var(--p-surface-50)">
+  <app-sidebar [items]="navItems()" />
+  <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+    <app-topbar
+      [current]="current()"
+      [username]="auth.username()"
+      (logout)="auth.logout()"
+      (menu)="sidebar()?.openMobile()"
+    />
+    <main class="flex-1 overflow-auto p-4 lg:p-6">
+      <router-outlet />
+    </main>
+  </div>
+</div>

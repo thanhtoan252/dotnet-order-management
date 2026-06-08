@@ -1,0 +1,39 @@
+<div class="flex flex-col gap-3 pt-1">
+  <div class="rounded-lg px-3 py-2 text-xs" style="background: var(--p-surface-100)">
+    Username: <span class="font-mono font-semibold">{{ user.username }}</span>
+    <span class="ml-2 opacity-50">(immutable)</span>
+  </div>
+  <form [formGroup]="form" class="flex flex-col gap-3">
+    <div class="grid grid-cols-2 gap-3">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium">First Name</label>
+        <input pInputText formControlName="firstName" class="w-full" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium">Last Name</label>
+        <input pInputText formControlName="lastName" class="w-full" />
+      </div>
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Email</label>
+      <input pInputText type="email" formControlName="email" class="w-full" />
+      @if (form.controls.email.hasError('zod')) {
+        <small class="text-red-500">{{ form.controls.email.getError('zod') }}</small>
+      }
+    </div>
+    <label class="flex items-center gap-2 text-sm">
+      <p-checkbox formControlName="enabled" [binary]="true" />
+      Enabled - user can log in
+    </label>
+  </form>
+</div>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="mut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button label="Save Changes" [disabled]="mut.isPending()" (onClick)="submit()" />
+</div>

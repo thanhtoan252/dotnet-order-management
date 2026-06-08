@@ -1,0 +1,16 @@
+/* Tailwind v4 (CSS-first config, no tailwind.config.js needed).
+   PrimeNG styles are emitted into the `primeng` CSS layer (configured via
+   providePrimeNG cssLayer in app.config.ts), ordered BEFORE Tailwind's
+   `utilities` layer so Tailwind layout/spacing utilities win over component
+   defaults. PrimeNG's design tokens (--p-*) are the source of truth for color. */
+@import 'tailwindcss';
+@import 'primeicons/primeicons.css';
+
+/* Full-height app shell. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--p-content-background);
+  color: var(--p-text-color);
+}

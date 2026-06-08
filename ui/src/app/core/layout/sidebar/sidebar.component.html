@@ -1,0 +1,78 @@
+@if (mobileOpen()) {
+  <div class="fixed inset-0 z-20 bg-black/30 lg:hidden" (click)="mobileOpen.set(false)"></div>
+}
+
+<aside
+  class="fixed inset-y-0 left-0 z-30 flex flex-col border-r transition-all duration-300 ease-in-out lg:relative"
+  [class.w-16]="collapsed()"
+  [class.w-64]="!collapsed()"
+  [class.translate-x-0]="mobileOpen()"
+  [class.-translate-x-full]="!mobileOpen()"
+  [class.lg:translate-x-0]="true"
+  style="background: var(--p-content-background); border-color: var(--p-content-border-color)"
+>
+  <!-- Brand -->
+  <div
+    class="flex items-center gap-3 border-b px-4 py-5"
+    [class.justify-center]="collapsed()"
+    style="border-color: var(--p-content-border-color)"
+  >
+    <div
+      class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl shadow-sm"
+      style="background: var(--p-primary-color)"
+    >
+      <lucide-icon
+        [img]="LayoutGrid"
+        class="h-5 w-5"
+        style="color: var(--p-primary-contrast-color)"
+      />
+    </div>
+    @if (!collapsed()) {
+      <div class="overflow-hidden">
+        <p class="truncate text-sm font-bold leading-tight">Order Management</p>
+        <p class="truncate text-xs opacity-50">Enterprise System</p>
+      </div>
+    }
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+    @if (!collapsed()) {
+      <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider opacity-40">Menu</p>
+    }
+    @for (item of items(); track item.id) {
+      <a
+        [routerLink]="['/', item.id]"
+        routerLinkActive
+        #rla="routerLinkActive"
+        (click)="mobileOpen.set(false)"
+        [title]="collapsed() ? item.label : ''"
+        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150"
+        [class.justify-center]="collapsed()"
+        [style.background]="rla.isActive ? 'var(--p-surface-100)' : 'transparent'"
+        [style.color]="rla.isActive ? 'var(--p-text-color)' : 'inherit'"
+      >
+        <lucide-icon [img]="item.icon" class="h-5 w-5 flex-shrink-0" />
+        @if (!collapsed()) {
+          <span>{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+
+  <!-- Collapse toggle (desktop only) -->
+  <button
+    type="button"
+    [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+    class="hidden items-center justify-center border-t py-3 opacity-50 transition-opacity hover:opacity-100 lg:flex"
+    style="border-color: var(--p-content-border-color)"
+    (click)="collapsed.set(!collapsed())"
+    [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+  >
+    <lucide-icon
+      [img]="ChevronLeft"
+      class="h-4 w-4 transition-transform duration-300"
+      [class.rotate-180]="collapsed()"
+    />
+  </button>
+</aside>

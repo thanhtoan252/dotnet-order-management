@@ -1,0 +1,36 @@
+<div class="flex flex-col gap-3 pt-1">
+  <div class="rounded-lg px-3 py-2 text-xs" style="background: var(--p-surface-100)">
+    {{ item.productName }} <span class="ml-2 font-mono">{{ item.sku }}</span>
+    <div class="mt-1">
+      Current on hand: <span class="font-semibold">{{ item.onHand }}</span>
+    </div>
+  </div>
+  <form [formGroup]="form" class="flex flex-col gap-3">
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Quantity to receive</label>
+      <input pInputText type="number" min="1" formControlName="quantity" class="w-full" />
+      @if (form.controls.quantity.hasError('zod')) {
+        <small class="text-red-500">{{ form.controls.quantity.getError('zod') }}</small>
+      }
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium">Reason (optional)</label>
+      <input
+        pInputText
+        formControlName="reason"
+        placeholder="e.g. PO-1234 receipt"
+        class="w-full"
+      />
+    </div>
+  </form>
+</div>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button
+    label="Cancel"
+    [text]="true"
+    severity="secondary"
+    [disabled]="mut.isPending()"
+    (onClick)="cancel()"
+  />
+  <p-button label="Receive" [disabled]="mut.isPending()" (onClick)="submit()" />
+</div>

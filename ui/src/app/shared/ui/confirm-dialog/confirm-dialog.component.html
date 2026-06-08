@@ -1,0 +1,9 @@
+<p class="text-sm leading-relaxed">{{ data.message }}</p>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button label="Cancel" [text]="true" severity="secondary" (onClick)="cancel()" />
+  @if (data.danger) {
+    <p-button [label]="data.confirmText ?? 'Confirm'" severity="danger" (onClick)="confirm()" />
+  } @else {
+    <p-button [label]="data.confirmText ?? 'Confirm'" (onClick)="confirm()" />
+  }
+</div>

@@ -1,0 +1,44 @@
+<div class="flex flex-col gap-5">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-bold">Orders</h2>
+      <p class="mt-0.5 text-sm opacity-60">
+        {{ orders().length }} order{{ orders().length !== 1 ? 's' : '' }} loaded
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <p-button [outlined]="true" (onClick)="query.refetch()" [disabled]="query.isFetching()">
+        <lucide-icon
+          [img]="RefreshCw"
+          class="mr-1 h-4 w-4"
+          [class.animate-spin]="query.isFetching()"
+        />
+        Refresh
+      </p-button>
+      @if (perms.canManageOrders()) {
+        <p-button (onClick)="openCreate()">
+          <lucide-icon [img]="Plus" class="mr-1 h-4 w-4" />
+          New Order
+        </p-button>
+      }
+    </div>
+  </div>
+
+  <div
+    class="overflow-hidden rounded-xl border shadow-sm"
+    style="border-color: var(--p-content-border-color); background: var(--p-content-background)"
+  >
+    <app-orders-table
+      [orders]="orders()"
+      [loading]="query.isFetching()"
+      [hasMore]="query.hasNextPage()"
+      [canManage]="perms.canManageOrders()"
+      (confirm)="confirmMut.mutate($event)"
+      (ship)="shipMut.mutate($event)"
+      (deliver)="deliverMut.mutate($event)"
+      (cancel)="openCancel($event)"
+      (remove)="confirmDelete($event)"
+      (loadMore)="query.fetchNextPage()"
+    />
+  </div>
+</div>

@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-3 pt-1">
+  <div class="flex items-start gap-3">
+    <div
+      class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+      style="background: var(--p-red-100)"
+    >
+      <lucide-icon [img]="TriangleAlert" class="h-5 w-5" style="color: var(--p-red-700)" />
+    </div>
+    <p class="pt-1 text-sm opacity-70">
+      Please provide a reason for cancelling this order. This action can only be undone if the order
+      is still pending or confirmed.
+    </p>
+  </div>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-medium">Reason</label>
+    <input pInputText [formControl]="reason" placeholder="Reason for cancellation" class="w-full" />
+  </div>
+</div>
+<div class="mt-6 flex justify-end gap-2">
+  <p-button label="Back" [text]="true" severity="secondary" (onClick)="cancel()" />
+  <p-button label="Confirm Cancel" (onClick)="confirm()" />
+</div>
